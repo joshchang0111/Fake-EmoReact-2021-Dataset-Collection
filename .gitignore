@@ -1,8 +1,2 @@
-code/.DS_Store
-code/._.DS_Store
-code/._5_twitterBBC.csv
-code/._gif_crawling.py
-code/._statistics.py
-code/._tweets.txt
-code/._twitter_crawl.py
-code/._twitter_crawler.py
+.*
+code/.*

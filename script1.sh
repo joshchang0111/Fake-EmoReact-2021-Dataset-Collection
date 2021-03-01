@@ -16,15 +16,17 @@
 ############
 ## Step 3 ##
 ############
-python code/twitter_crawler.py \
-	-app_name FakeNewsGIF1 \
-	-find_gif true \
-	-reply_file no_covid_1_reply.txt \
-	-gif_reply_file no_covid_1_gif_reply.txt \
-	-gif_dir no_covid_1_gif_tweets
+#python code/twitter_crawler.py \
+#	-app_name FakeNewsGIF1 \
+#	-find_gif true \
+#	-reply_file no_covid_1_reply.txt \
+#	-gif_reply_file no_covid_1_gif_reply.txt \
+#	-gif_dir no_covid_1_gif_tweets
 #python code/twitter_crawler.py -rewrite_gif_tweets true
 
 ############
 ## Step 4 ##
 ############
 #python code/twitter_crawler.py -fetch_gif true
+
+python code/twitter_crawler.py -rewrite_data_format true

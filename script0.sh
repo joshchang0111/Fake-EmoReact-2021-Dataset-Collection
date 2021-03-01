@@ -35,20 +35,21 @@
 ############
 ## Step 4 ##
 ############
-#python code/twitter_crawler.py -fetch_gif true
+#python code/twitter_crawler.py -fetch_gif true -gif_dir covid_gif_reply
+#python code/twitter_crawler.py -fetch_gif true -gif_dir no_covid_gif_reply
 
 ################
 ## Statistics ##
 ################
-#python code/twitter_crawler.py -statistics true
+#python code/statistics.py
 
 #########################
 ## rewrite data format ##
 #########################
-python code/twitter_crawler.py -rewrite_data_format true -reply_file covid_gif_reply.txt -gif_dir covid_gif_tweets -app_name AgainstRumor
-python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_gif_reply.txt -gif_dir no_covid_gif_tweets -app_name FakeNewsGIF1
-python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_0_gif_reply.txt -gif_dir no_covid_0_gif_tweets -app_name FakeNewsGIF2
-python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_1_gif_reply.txt -gif_dir no_covid_1_gif_tweets -app_name FakeNewsGIF3
-python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_2_gif_reply.txt -gif_dir no_covid_2_gif_tweets -app_name FakeNewsGIF4
-python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_3_gif_reply.txt -gif_dir no_covid_3_gif_tweets -app_name FakeNewsGIF5
-python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_4_gif_reply.txt -gif_dir no_covid_4_gif_tweets -app_name FakeNewsGIF6
+#python code/twitter_crawler.py -rewrite_data_format true -reply_file covid_gif_reply.txt -gif_dir no_covid_gif_tweets -app_name AgainstRumor
+#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_gif_reply.txt -gif_dir no_covid_gif_tweets -app_name FakeNewsGIF1
+#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_0_gif_reply.txt -gif_dir no_covid_0_gif_tweets -app_name FakeNewsGIF2
+#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_1_gif_reply.txt -gif_dir no_covid_1_gif_tweets -app_name FakeNewsGIF3
+#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_2_gif_reply.txt -gif_dir no_covid_2_gif_tweets -app_name FakeNewsGIF4
+#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_3_gif_reply.txt -gif_dir no_covid_3_gif_tweets -app_name FakeNewsGIF5
+#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_4_gif_reply.txt -gif_dir no_covid_4_gif_tweets -app_name FakeNewsGIF6
