@@ -88,13 +88,13 @@ def read_source_file(filename):
 	f.close()
 
 	tweet_ids, usernames = [], []
-	for line in lines:
+	for line in tqdm(lines):
 		line = line.strip().rstrip()
 		tweet_id, username = line.split("\t")[0], line.split("\t")[1]
 		tweet_ids.append(tweet_id)
 		usernames.append(username)
 
-	return tweet_ids, username
+	return tweet_ids, usernames
 
 def read_reply_file(filename):
 	f = open(filename, "r")
@@ -116,33 +116,19 @@ def fetch_source(args):
 	covid_filename    = "{}/source/20210218/covid_{}_replies.txt".format(args.result_path, args.min_replies)
 	no_covid_filename = "{}/source/20210218/no_covid_{}_replies.txt".format(args.result_path, args.min_replies)
 
-	## Read existing files
-	def read_existing(covid_path, no_covid_path, covid_exist_ids, no_covid_exist_ids):
-		f_covid    = open(covid_exist_file, "r")
-		f_no_covid = open(no_covid_exist_file, "r")
-	
-		covid_exist_lines = f_covid.readlines()
-		no_covid_exist_lines = f_no_covid.readlines()
-	
-		f_covid.close()
-		f_no_covid.close()
-	
-		for line in tqdm(covid_exist_lines):
-			line = line.strip().rstrip()
-			source_id, username = line.split("\t")[0], line.split("\t")[1]
-			covid_exist_ids.append(source_id)
-	
-		for line in tqdm(no_covid_exist_lines):
-			line = line.strip().rstrip()
-			source_id, username = line.split("\t")[0], line.split("\t")[1]
-			no_covid_exist_ids.append(source_id)
+	## Read and count existing tweet ids
+	def read_existing(covid_exist_path, no_covid_exist_path, covid_exist_ids, no_covid_exist_ids):
+		tweet_ids, _ = read_source_file(covid_exist_path)
+		covid_exist_ids += tweet_ids
+		tweet_ids, _ = read_source_file(no_covid_exist_path)
+		no_covid_exist_ids += tweet_ids
 
 		return covid_exist_ids,  no_covid_exist_ids
 
 	print("Reading existing files (source id).")
 	covid_exist_ids, no_covid_exist_ids = [], []
 	covid_exist_ids, no_covid_exist_ids = read_existing(covid_exist_file, no_covid_exist_file, covid_exist_ids, no_covid_exist_ids)
-	#covid_exist_ids, no_covid_exist_ids = read_existing(covid_filename, no_covid_filename, covid_exist_ids, no_covid_exist_ids)
+	covid_exist_ids, no_covid_exist_ids = read_existing(covid_filename, no_covid_filename, covid_exist_ids, no_covid_exist_ids)
 
 	print("Existing source (   covid): {}".format(len(covid_exist_ids)))
 	print("Existing source (no_covid): {}".format(len(no_covid_exist_ids)))
@@ -150,6 +136,8 @@ def fetch_source(args):
 
 	## Fetching
 	print("Fetching source tweets with min_replies: {}".format(args.min_replies))
+	covid_filename    = "{}/source/20210301/covid_{}_replies.txt".format(args.result_path, args.min_replies)
+	no_covid_filename = "{}/source/20210301/no_covid_{}_replies.txt".format(args.result_path, args.min_replies)
 	covid_tweet_list, no_covid_tweet_list = [], []
 	f_covid    = open(covid_filename, "w")
 	f_no_covid = open(no_covid_filename, "w")
@@ -303,12 +291,12 @@ def find_gif_tweets(args):
 	'''
 	api = setup_tweepy_api(args)
 
-	input_path  = "{}/reply/{}".format(args.result_path, args.reply_file)
-	output_path = "{}/reply/{}".format(args.result_path, args.gif_reply_file)
+	input_path  = "{}/reply/20210218/{}".format(args.result_path, args.reply_file)
+	output_path = "{}/reply/20210218/{}".format(args.result_path, args.gif_reply_file)
 
 	print("Finding GIF tweets from {}".format(input_path))
 
-	# read source and replies id
+	# read source and reply ids
 	f = open(input_path, "r")
 	lines = f.readlines()
 	f.close()
@@ -320,18 +308,20 @@ def find_gif_tweets(args):
 
 		if type == "source":
 			source_id = id
-			fw.write("source\t{}\n".format(id))
+			#fw.write("source\t{}\n".format(id))
 			continue
 
 		try:
 			reply_status = api.get_status(id, tweet_mode="extended")
 			reply_type = reply_status.extended_entities["media"][0]["type"]
 			if reply_type == "animated_gif":
+				source_path = "{}/reply/20210218/{}/{}/reply".format(args.result_path, args.gif_dir, source_id)
 				# write to file
+				if not os.path.exists(source_path):
+					fw.write("source\t{}\n".format(source_id))
+				os.makedirs(source_path, exist_ok=True)
 				fw.write("reply\t{}\n".format(id))
 				# write json file
-				source_path = "{}/reply/{}/{}".format(args.result_path, args.gif_dir, source_id)
-				os.makedirs(source_path, exist_ok=True)
 				f_json = open("{}/{}.json".format(source_path, id), "w")
 				f_json.write(json.dumps(reply_status._json, indent=4))
 				f_json.close()

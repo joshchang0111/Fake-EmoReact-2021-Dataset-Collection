@@ -41,7 +41,7 @@
 ################
 ## Statistics ##
 ################
-#python code/statistics.py
+python code/statistics.py -count_by_txt true
 
 #########################
 ## rewrite data format ##

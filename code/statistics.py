@@ -1,76 +1,92 @@
 import argparse
 
+def str2bool(str):
+	if str.lower() == "false":
+		return False
+	elif str.lower() == "true":
+		return True
+
 def parse_args():
 	parser = argparse.ArgumentParser(description="Statistics of FakeNewsGIF")
+
+	# mode
+	parser.add_argument("-total_count", type=str2bool, default=False)
+	parser.add_argument("-count_by_txt", type=str2bool, default=False)
+
+	# other arguments
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/results")
 
 	args=parser.parse_args()
 	
 	return args
 
-def statistics(args):
-	def count(input_path, source_list, reply_list, not_accessed_list):
+def total_count(args):
+	'''
+	Calculate total amount of source and replies.
+	'''
+	def count(input_path, source_list, reply_list):
 		f = open(input_path, "r")
 		lines = f.readlines()
 		f.close()
 
-		flag = 0
 		for line in lines:
 			line = line.strip().rstrip()
 			type, id = line.split("\t")[0], line.split("\t")[1]
 			if type == "source":
-				if id not in not_accessed_list:
-					source_list.append(id)
-					flag = 1
-				else:
-					flag = 0
-			if type == "reply" and flag == 1:
+				source_list.append(id)
+			if type == "reply":
 				reply_list.append(id)
 
 		return source_list, reply_list
 
-	## Read not accessed source ids
-	input_path = "{}/source/no_covid_gif_source_not_accessed.txt".format(args.result_path)
-	f = open(input_path, "r")
-	lines = f.readlines()
-	f.close()
-
-	no_covid_not_accessed_list = []
-	for line in lines:
-		source_id = line.strip().rstrip()
-		no_covid_not_accessed_list.append(source_id)
-
-	input_path = "{}/source/covid_gif_source_not_accessed.txt".format(args.result_path)
-	f = open(input_path, "r")
-	lines = f.readlines()
-	f.close()
-
-	covid_not_accessed_list = []
-	for line in lines:
-		source_id = line.strip().rstrip()
-		covid_not_accessed_list.append(source_id)
-	
-
-	source_path = "{}/reply".format(args.result_path)
-	## no_covid
-	print("---no_covid---")
 	source_list, reply_list = [], []
-	input_path = "{}/no_covid_gif_reply.txt".format(source_path)
-	source_list, reply_list = count(input_path, source_list, reply_list, no_covid_not_accessed_list)
+	input_path = "{}/reply/reply.txt".format(args.result_path)
+	source_list, reply_list = count(input_path, source_list, reply_list)
 
 	print("# of source (gif): {}".format(len(source_list)))
 	print("# of reply  (gif): {}".format(len(reply_list)))
 
-	## covid
-	print("---covid---")
-	source_list, reply_list = [], []
-	input_path = "{}/covid_gif_reply.txt".format(source_path)
-	source_list, reply_list = count(input_path, source_list, reply_list, covid_not_accessed_list)
+def count_by_txt(args):
+	'''
+	2 categories: whether the source text contains keywords or not.
+	Calculate amount of source of each category.
+	'''
+	def has_key(text, keywords):
+		for keyword in keywords:
+			if keyword in text.lower():
+				return True
 
-	print("# of source (gif): {}".format(len(source_list)))
-	print("# of reply  (gif): {}".format(len(reply_list)))
+		return False
+
+	keywords = ["covid", "coronavirus", "corona", "pandemic", "vaccine", "quarantine", "pneumonia"]
+	num_key = len(keywords)
+
+	for num_key in range(len(keywords)):
+		num_key += 1
+		src_with_key, src_wo_key = [], []
+		input_path = "{}/source/gif_source.txt".format(args.result_path)
+		for line in open(input_path, "r").readlines():
+			line = line.strip().rstrip()
+			source_id, text = line.split("\t")[0], line.split("\t")[1]
+			
+			if has_key(text, keywords[:num_key]):
+				src_with_key.append(source_id)
+			elif not has_key(text, keywords[:num_key]):
+				src_wo_key.append(source_id)
+
+		print("======================")
+		print("-- with    keywords --")
+		print("# of source (gif): {}".format(len(src_with_key)))
+		print("-- without keywords --")
+		print("# of source (gif): {}".format(len(src_wo_key)))
+
+def main(args):
+	if args.total_count:
+		total_count(args)
+	elif args.count_by_txt:
+		count_by_txt(args)
 
 if __name__ == "__main__":
 	args = parse_args()
-	statistics(args)
+	main(args)
 	
