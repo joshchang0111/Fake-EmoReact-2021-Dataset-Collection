@@ -49,13 +49,14 @@ def parse_args():
 	parser.add_argument("-find_gif_tweets", type=str2bool, default=False)
 	parser.add_argument("-rewrite_gif_tweets", type=str2bool, default=False)
 	parser.add_argument("-fetch_gif", type=str2bool, default=False)
-	parser.add_argument("-rewrite_data_format", type=str2bool, default=False)
+	parser.add_argument("-get_gif_source", type=str2bool, default=False)
+	parser.add_argument("-write_source_text", type=str2bool, default=False)
 	
 	# other arguments
 	parser.add_argument("-min_replies", type=int, default=5)
 	parser.add_argument("-query", type=str, default="(#FakeNews)")
-	parser.add_argument("-source_file", type=str, default="covid_5_replies.txt") # no_covid_5_replies.txt
-	parser.add_argument("-reply_file", type=str, default="covid_reply.txt") # no_covid_reply.txt
+	parser.add_argument("-source_file", type=str, default="covid_5_replies.txt")
+	parser.add_argument("-reply_file", type=str, default="covid_reply.txt")
 	parser.add_argument("-sample_num", type=int, default=1000)
 	parser.add_argument("-gif_reply_file", type=str, default="covid_gif_tweets.txt") # for finding gif
 	parser.add_argument("-gif_dir", type=str, default="covid_gif_tweets") # for finding gif
@@ -402,80 +403,40 @@ def fetch_gif(args):
 			r = requests.get(gif_url, allow_redirects=True)
 			open("{}/{}.mp4".format(reply_path, json_file.split(".")[0]), "wb").write(r.content)
 
-def rewrite_data_format(args):
-	## Fetch source json files and create reply directory.
-	'''
-	source_path = "{}/reply".format(args.result_path)
-	input_path = "{}/{}".format(source_path, args.reply_file)
-	
-	f = open(input_path, "r")
-	lines = f.readlines()
-	f.close()
+def get_gif_source(args):
+	source_path = "{}/reply/20210218/gif_reply".format(args.result_path)
+	dirs = os.listdir(source_path)
 
-	source_list = []
-	for line in lines:
+	gif_source_ids = []
+	for dir in dirs:
+		if os.path.isdir("{}/{}".format(source_path, dir)) and dir[0] != ".":
+			gif_source_ids.append(dir)
+
+	gif_reply_ids = []
+	for gif_source_id in gif_source_ids:
+		reply_path = "{}/{}/reply".format(source_path, gif_source_id)
+		reply_files = os.listdir(reply_path)
+
+		for reply_file in reply_files:
+			if ".json" in reply_file and reply_file[0] != ".":
+				gif_reply_ids.append(reply_file)
+				reply_id = reply_file.split(".")[0]
+
+	print(len(gif_source_ids))
+	print(len(gif_reply_ids))
+
+	input_path = "{}/source/20210218/source.txt".format(args.result_path)
+	fw = open("{}/source/20210218/gif_source.txt".format(args.result_path), "w")
+	for line in open(input_path, "r"):
 		line = line.strip().rstrip()
-		type, id = line.split("\t")[0], line.split("\t")[1]
-		if type == "source":
-			source_list.append(id)
+		source_id, username, text = line.split("\t")[0], line.split("\t")[1], line.split("\t")[2]
+		if source_id in gif_source_ids:
+			fw.write("{}\t{}\n".format(source_id, text))
+	fw.close()
 
-	source_accessed, source_not_accessed = [], []
-	#f1 = open("{}/source/{}".format(args.result_path, args.reply_file.replace("reply", "source")), "w")
-	#f2 = open("{}/source/{}".format(args.result_path, args.reply_file.replace("reply", "source_not_accessed")), "w")
-	api = setup_tweepy_api(args)
-	for source_id in tqdm(source_list):
-		reply_files = os.listdir("{}/{}/{}".format(source_path, args.gif_dir, source_id))
-		if "reply" not in reply_files:
-			os.makedirs("{}/{}/{}/reply".format(source_path, args.gif_dir, source_id), exist_ok=True)
-			# move all reply json files to new reply directory
-			for reply_file in reply_files:
-				os.rename("{}/{}/{}/{}".format(source_path, args.gif_dir, source_id, reply_file), "{}/{}/{}/reply/{}".format(source_path, args.gif_dir, source_id, reply_file))
-		
-		## Remove source_id.json files
-		#if "{}.json".format(source_id) in reply_files:
-		#	os.remove("{}/{}/{}/{}.json".format(source_path, args.gif_dir, source_id, source_id))
-		#	cnt += 1
-
-		# write source text files
-		try:
-			source_status = api.get_status(source_id, tweet_mode="extended")._json
-			source_accessed.append(source_id)
-			#f1.write("{}\t{}\n".format(source_id, source_status["full_text"].replace("\n", "<newline>")))
-			#f_json = open("{}/{}/{}/{}.json".format(source_path, args.gif_dir, source_id, source_id), "w")
-			#f_json.write(json.dumps(source_status._json, indent=4))
-			#f_json.close()
-		except tweepy.error.TweepError as e:
-			# these are the tweets that tweepy cannot access
-			source_not_accessed.append(source_id)
-			#f2.write("{}\n".format(source_id))
-
-	print("accessed {}/{}".format(len(source_accessed), len(source_list)))
-	print("Not accessed {}/{}".format(len(source_not_accessed), len(source_list)))
-
-	#f1.close()
-	#f2.close()
-	'''
-
-	'''
-	## Move not accessed files
-	input_path = "{}/source/no_covid_gif_source_not_accessed.txt".format(args.result_path)
-	source_path = "{}/reply/{}".format(args.result_path, args.gif_dir)
-
-	f = open(input_path, "r")
-	lines = f.readlines()
-	f.close()
-
-	for line in lines:
-		source_id = line.strip().rstrip()
-		old_path = "{}/{}".format(source_path, source_id)
-		new_path = "{}/reply/no_covid_not_accessed/{}".format(args.result_path, source_id)
-
-		shutil.move(old_path, new_path)
-	'''
-
-	'''
+def write_source_text(args):
 	## Write source.txt to each source directory
-	input_path = "{}/source/no_covid_gif_source.txt".format(args.result_path)
+	input_path = "{}/source/20210218/gif_source.txt".format(args.result_path)
 
 	f = open(input_path, "r")
 	lines = f.readlines()
@@ -485,30 +446,10 @@ def rewrite_data_format(args):
 		line = line.strip().rstrip()
 		source_id, text = line.split("\t")[0], line.split("\t")[1]
 
-		output_path = "{}/reply/no_covid_gif_tweets/{}/source.txt".format(args.result_path, source_id)
+		output_path = "{}/reply/20210218/gif_reply/{}/source.txt".format(args.result_path, source_id)
 		fw = open(output_path, "w")
 		fw.write(text.replace("<newline>", "\n"))
 		fw.close()
-	'''
-	'''
-	## Remove .mp4 files of covid_gif_reply
-	input_path = "{}/source/covid_gif_source.txt".format(args.result_path)
-
-	f = open(input_path, "r")
-	lines = f.readlines()
-	f.close()
-
-	for line in tqdm(lines):
-		line = line.strip().rstrip()
-		source_id, text = line.split("\t")[0], line.split("\t")[1]
-
-		source_path = "{}/reply/covid_gif_reply/{}/reply".format(args.result_path, source_id)
-		files = os.listdir(source_path)
-
-		for file in files:
-			if ".mp4" in file:
-				os.remove("{}/{}".format(source_path, file))
-	'''
 
 def main(args):
 	if args.fetch_source:
@@ -523,8 +464,10 @@ def main(args):
 		rewrite_gif_tweets(args)
 	elif args.fetch_gif:
 		fetch_gif(args)
-	elif args.rewrite_data_format:
-		rewrite_data_format(args)
+	elif args.get_gif_source:
+		get_gif_source(args)
+	elif args.write_source_text:
+		write_source_text(args)
 
 if __name__ == "__main__":
 	args = parse_args()

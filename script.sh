@@ -41,15 +41,10 @@
 ################
 ## Statistics ##
 ################
+#python code/statistics.py -total_count true
 python code/statistics.py -count_by_txt true
 
-#########################
-## rewrite data format ##
-#########################
-#python code/twitter_crawler.py -rewrite_data_format true -reply_file covid_gif_reply.txt -gif_dir no_covid_gif_tweets -app_name AgainstRumor
-#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_gif_reply.txt -gif_dir no_covid_gif_tweets -app_name FakeNewsGIF1
-#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_0_gif_reply.txt -gif_dir no_covid_0_gif_tweets -app_name FakeNewsGIF2
-#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_1_gif_reply.txt -gif_dir no_covid_1_gif_tweets -app_name FakeNewsGIF3
-#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_2_gif_reply.txt -gif_dir no_covid_2_gif_tweets -app_name FakeNewsGIF4
-#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_3_gif_reply.txt -gif_dir no_covid_3_gif_tweets -app_name FakeNewsGIF5
-#python code/twitter_crawler.py -rewrite_data_format true -reply_file no_covid_4_gif_reply.txt -gif_dir no_covid_4_gif_tweets -app_name FakeNewsGIF6
+#######################
+## write source text ##
+#######################
+#python code/twitter_crawler.py -write_source_text true

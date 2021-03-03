@@ -40,7 +40,7 @@ def total_count(args):
 		return source_list, reply_list
 
 	source_list, reply_list = [], []
-	input_path = "{}/reply/reply.txt".format(args.result_path)
+	input_path = "{}/reply/20210218/gif_reply.txt".format(args.result_path)
 	source_list, reply_list = count(input_path, source_list, reply_list)
 
 	print("# of source (gif): {}".format(len(source_list)))
@@ -64,7 +64,7 @@ def count_by_txt(args):
 	for num_key in range(len(keywords)):
 		num_key += 1
 		src_with_key, src_wo_key = [], []
-		input_path = "{}/source/gif_source.txt".format(args.result_path)
+		input_path = "{}/source/20210218/gif_source.txt".format(args.result_path)
 		for line in open(input_path, "r").readlines():
 			line = line.strip().rstrip()
 			source_id, text = line.split("\t")[0], line.split("\t")[1]
