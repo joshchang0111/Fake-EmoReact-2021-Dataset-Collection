@@ -8,10 +8,10 @@
 ## Step 2 ##
 ############
 #python code/twitter_crawler.py -install_chrome_driver true
-#python code/twitter_crawler.py \
-#	-fetch_replies true \
-#	-source_file no_covid_0.txt \
-#	-reply_file no_covid_0_reply.txt
+python3 code/twitter_crawler.py \
+	-fetch_replies true \
+	-source_file source.txt \
+	-reply_file reply.txt
 
 ############
 ## Step 3 ##
@@ -42,7 +42,7 @@
 ## Statistics ##
 ################
 #python code/statistics.py -total_count true
-python code/statistics.py -count_by_txt true
+#python code/statistics.py -count_by_txt true
 
 #######################
 ## write source text ##
