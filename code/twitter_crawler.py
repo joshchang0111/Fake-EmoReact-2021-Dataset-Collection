@@ -45,9 +45,7 @@ def parse_args():
 	parser.add_argument("-fetch_source", type=str2bool, default=False)
 	parser.add_argument("-install_chrome_driver", type=str2bool, default=False)
 	parser.add_argument("-fetch_replies", type=str2bool, default=False)
-	parser.add_argument("-sample", type=str2bool, default=False) # for fetching replies
 	parser.add_argument("-find_gif_tweets", type=str2bool, default=False)
-	parser.add_argument("-rewrite_gif_tweets", type=str2bool, default=False)
 	parser.add_argument("-fetch_gif", type=str2bool, default=False)
 	parser.add_argument("-get_gif_source", type=str2bool, default=False)
 	parser.add_argument("-write_source_text", type=str2bool, default=False)
@@ -55,11 +53,10 @@ def parse_args():
 	# other arguments
 	parser.add_argument("-min_replies", type=int, default=5)
 	parser.add_argument("-query", type=str, default="(#FakeNews)")
-	parser.add_argument("-source_file", type=str, default="covid_5_replies.txt")
-	parser.add_argument("-reply_file", type=str, default="covid_reply.txt")
-	parser.add_argument("-sample_num", type=int, default=1000)
-	parser.add_argument("-gif_reply_file", type=str, default="covid_gif_tweets.txt") # for finding gif
-	parser.add_argument("-gif_dir", type=str, default="covid_gif_tweets") # for finding gif
+	parser.add_argument("-source_file", type=str, default="source.txt")
+	parser.add_argument("-reply_file", type=str, default="reply.txt")
+	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.txt") # for finding gif
+	parser.add_argument("-gif_dir", type=str, default="gif_reply") # for finding gif
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/results")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
 	
@@ -170,7 +167,7 @@ def install_chrome_driver(args):
 	## 0. Install ChromeDriver automatically
 	driver = webdriver.Chrome(ChromeDriverManager().install())
 	
-def crawl_replies(args, driver, source_id, username):
+def crawl_replies(args, source_id, username):
 	'''
 	Web crawling on twitter page by selenium.
 	Get replies of a specific source tweet.
@@ -178,6 +175,17 @@ def crawl_replies(args, driver, source_id, username):
 		https://ithelp.ithome.com.tw/articles/10191165?fbclid=IwAR2biL_rIY78_u783eWI8zdaPHGqT9EQieQEwRD4X_Qurh1WaMeEy7tdBYc
 		https://towardsdatascience.com/build-a-scalable-web-crawler-with-selenium-and-pyhton-9c0c23e3ebe5
 	'''
+	def create_driver():
+		## 1. Define browser options
+		chrome_options = Options()
+		chrome_options.add_argument("--headless") # Hide the browser window
+		## 2. Reference the local Chromedriver instance
+		chrome_path = r"/Users/joshua/.wdm/drivers/chromedriver/mac64/88.0.4324.96/chromedriver"
+		driver = webdriver.Chrome(executable_path=chrome_path, options=chrome_options)
+		driver.execute_cdp_cmd('Network.setUserAgentOverride', {"userAgent": args.user_agent})
+
+		return driver
+
 	def scroll_to_bottom(driver, reply_ids):
 		SCROLL_PAUSE_TIME = 0.5
 		# Get scroll height
@@ -218,10 +226,12 @@ def crawl_replies(args, driver, source_id, username):
 					reply_ids.append(tweet_id)
 		return reply_ids
 
+	## create driver
+	driver = create_driver()
 	tweet_url = "https://twitter.com/{}/status/{}".format(username, source_id)
 
 	## Run the Webdriver, save page and quit browser
-	reply_ids = [] 
+	reply_ids = []
 
 	## 1 get source html and wait for javascript element
 	driver.get(tweet_url)
@@ -240,23 +250,14 @@ def crawl_replies(args, driver, source_id, username):
 	time.sleep(3)
 	reply_ids = find_reply_id_from_html(driver.page_source, reply_ids)
 	driver = scroll_to_bottom(driver, reply_ids)
+
+	driver.quit()
 	
 	return reply_ids
 
 def fetch_replies(args):
-	def create_driver():
-		## 1. Define browser options
-		chrome_options = Options()
-		chrome_options.add_argument("--headless") # Hide the browser window
-		
-		## 2. Reference the local Chromedriver instance
-		chrome_path = r"/Users/joshua/.wdm/drivers/chromedriver/mac64/87.0.4280.88/chromedriver"
-		driver = webdriver.Chrome(executable_path=chrome_path, options=chrome_options)
-
-		return driver
-	
-	source_ids_file = "{}/source/{}".format(args.result_path, args.source_file)
-	output_path = "{}/reply/{}".format(args.result_path, args.reply_file)
+	source_ids_file = "{}/FakeNews/source/20210301/{}".format(args.result_path, args.source_file)
+	output_path = "{}/FakeNews/reply/20210301/{}".format(args.result_path, args.reply_file)
 
 	print("Fetching replies from {}".format(source_ids_file))
 	print("Writing to {}".format(output_path))
@@ -265,18 +266,14 @@ def fetch_replies(args):
 	lines = f.readlines()
 	f.close()
 
-	if args.sample:
-		random.shuffle(lines)
-		lines = lines[:args.sample_num]
-
-	## create driver
-	driver = create_driver()
-	
+	## iterate through all source ids and crawl its replies
 	fw = open(output_path, "w")
 	for line in tqdm(lines):
 		line = line.strip().rstrip()
 		source_id, username = line.split("\t")[0], line.split("\t")[1]
-		reply_ids = crawl_replies(args, driver, source_id, username)
+
+		#reply_ids = crawl_replies(args, driver, source_id, username)
+		reply_ids = crawl_replies(args, source_id, username)
 
 		fw.write("source\t{}\n".format(source_id))
 		# write reply ids to file
@@ -284,16 +281,14 @@ def fetch_replies(args):
 			fw.write("reply\t{}\n".format(reply_id))
 	fw.close()
 
-	driver.quit()
-
 def find_gif_tweets(args):
 	'''
 	Find gif tweets among all replies.
 	'''
 	api = setup_tweepy_api(args)
 
-	input_path  = "{}/reply/20210218/{}".format(args.result_path, args.reply_file)
-	output_path = "{}/reply/20210218/{}".format(args.result_path, args.gif_reply_file)
+	input_path  = "{}/reply/20210301/{}".format(args.result_path, args.reply_file)
+	output_path = "{}/reply/20210301/{}".format(args.result_path, args.gif_reply_file)
 
 	print("Finding GIF tweets from {}".format(input_path))
 
@@ -309,14 +304,13 @@ def find_gif_tweets(args):
 
 		if type == "source":
 			source_id = id
-			#fw.write("source\t{}\n".format(id))
 			continue
 
 		try:
 			reply_status = api.get_status(id, tweet_mode="extended")
 			reply_type = reply_status.extended_entities["media"][0]["type"]
 			if reply_type == "animated_gif":
-				source_path = "{}/reply/20210218/{}/{}/reply".format(args.result_path, args.gif_dir, source_id)
+				source_path = "{}/reply/20210301/{}/{}/reply".format(args.result_path, args.gif_dir, source_id)
 				# write to file
 				if not os.path.exists(source_path):
 					fw.write("source\t{}\n".format(source_id))
@@ -326,43 +320,11 @@ def find_gif_tweets(args):
 				f_json = open("{}/{}.json".format(source_path, id), "w")
 				f_json.write(json.dumps(reply_status._json, indent=4))
 				f_json.close()
-
 		except (AttributeError, tweepy.error.TweepError) as e:
 			continue
-	
+		except KeyboardInterrupt as e:
+			break
 	fw.close()
-
-def rewrite_gif_tweets(args):
-	for idx in range(5):
-		input_path = "{}/reply/no_covid_{}_gif_reply.txt".format(args.result_path, idx)
-		output_path = "{}/reply/no_covid_{}_gif_replyy.txt".format(args.result_path, idx)
-	
-		#input_path = "{}/FakeNews/reply/covid_gif_tweets.txt".format(args.result_path)
-		#output_path = "{}/FakeNews/reply/covid_gif_reply.txt".format(args.result_path)
-	
-		f = open(input_path, "r")
-		lines = f.readlines()
-		f.close()
-	
-		tweet_dict = {}
-		for line in tqdm(lines):
-			line = line.strip().rstrip()
-			type, id = line.split("\t")[0], line.split("\t")[1]
-	
-			if type == "source":
-				source_id = id
-				tweet_dict[source_id] = []
-			else:
-				reply_id = id
-				tweet_dict[source_id].append(reply_id)
-	
-		fw = open(output_path, "w")
-		for source, replies in tweet_dict.items():
-			if len(replies) != 0:
-				fw.write("source\t{}\n".format(source))
-				for reply in replies:
-					fw.write("reply\t{}\n".format(reply))
-		fw.close()
 
 def fetch_gif(args):
 	'''
@@ -460,14 +422,14 @@ def main(args):
 		fetch_replies(args)
 	elif args.find_gif_tweets:
 		find_gif_tweets(args)
-	elif args.rewrite_gif_tweets:
-		rewrite_gif_tweets(args)
 	elif args.fetch_gif:
 		fetch_gif(args)
 	elif args.get_gif_source:
 		get_gif_source(args)
 	elif args.write_source_text:
 		write_source_text(args)
+	else:
+		print("test")
 
 if __name__ == "__main__":
 	args = parse_args()

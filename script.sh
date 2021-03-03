@@ -16,12 +16,12 @@
 ############
 ## Step 3 ##
 ############
-#python code/twitter_crawler.py \
-#	-app_name AgainstRumor \
-#	-find_gif true \
-#	-reply_file no_covid_0_reply.txt \
-#	-gif_reply_file no_covid_0_gif_reply.txt \
-#	-gif_dir no_covid_0_gif_tweets
+python code/twitter_crawler.py \
+	-app_name AgainstRumor \
+	-find_gif true \
+	-reply_file reply.txt \
+	-gif_reply_file gif_reply.txt \
+	-gif_dir gif_reply
 #
 #
 #python code/twitter_crawler.py \
@@ -42,7 +42,7 @@
 ## Statistics ##
 ################
 #python code/statistics.py -total_count true
-python code/statistics.py -count_by_txt true
+#python code/statistics.py -count_by_txt true
 
 #######################
 ## write source text ##

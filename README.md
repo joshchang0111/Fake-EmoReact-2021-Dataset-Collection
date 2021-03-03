@@ -4,6 +4,7 @@ This project is used to crawl twitter data via web crawling mechanism and twitte
 ## Dependencies
 python=3.6.9  
 tqdm  
+configparser  
 snscrape  
 selenium  
 webdriver_manager  
