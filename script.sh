@@ -8,10 +8,10 @@
 ## Step 2 ##
 ############
 #python code/twitter_crawler.py -install_chrome_driver true
-#python code/twitter_crawler.py \
-#	-fetch_replies true \
-#	-source_file no_covid_0.txt \
-#	-reply_file no_covid_0_reply.txt
+python3 code/twitter_crawler.py \
+	-fetch_replies true \
+	-source_file source.txt \
+	-reply_file reply.txt
 
 ############
 ## Step 3 ##
