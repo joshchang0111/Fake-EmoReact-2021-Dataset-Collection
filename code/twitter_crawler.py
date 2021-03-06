@@ -54,9 +54,11 @@ def parse_args():
 	parser.add_argument("-min_replies", type=int, default=5)
 	parser.add_argument("-query", type=str, default="(#FakeNews)")
 	parser.add_argument("-source_file", type=str, default="source.txt")
+	parser.add_argument("-gif_source_file", type=str, default="gif_source.txt")
 	parser.add_argument("-reply_file", type=str, default="reply.txt")
 	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.txt") # for finding gif
 	parser.add_argument("-gif_dir", type=str, default="gif_reply") # for finding gif
+	parser.add_argument("-date_dir", type=str, default="20210301")
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/results")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
 	
@@ -330,7 +332,7 @@ def fetch_gif(args):
 	'''
 	Retrieve gif files (.mp4) from urls.
 	'''
-	gif_path = "{}/reply/{}".format(args.result_path, args.gif_dir)
+	gif_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.gif_dir)
 
 	source_ids = os.listdir(gif_path)
 	for source_id in source_ids:
@@ -366,7 +368,7 @@ def fetch_gif(args):
 			open("{}/{}.mp4".format(reply_path, json_file.split(".")[0]), "wb").write(r.content)
 
 def get_gif_source(args):
-	source_path = "{}/reply/20210218/gif_reply".format(args.result_path)
+	source_path = "{}/reply/{}/gif_reply".format(args.result_path, args.date_dir)
 	dirs = os.listdir(source_path)
 
 	gif_source_ids = []
@@ -387,8 +389,8 @@ def get_gif_source(args):
 	print(len(gif_source_ids))
 	print(len(gif_reply_ids))
 
-	input_path = "{}/source/20210218/source.txt".format(args.result_path)
-	fw = open("{}/source/20210218/gif_source.txt".format(args.result_path), "w")
+	input_path = "{}/source/{}/{}".format(args.result_path, args.date_dir, args.source_file)
+	fw = open("{}/source/{}/{}".format(args.result_path, args.date_dir, args.gif_source_file), "w")
 	for line in open(input_path, "r"):
 		line = line.strip().rstrip()
 		source_id, username, text = line.split("\t")[0], line.split("\t")[1], line.split("\t")[2]
@@ -428,8 +430,6 @@ def main(args):
 		get_gif_source(args)
 	elif args.write_source_text:
 		write_source_text(args)
-	else:
-		print("test")
 
 if __name__ == "__main__":
 	args = parse_args()
