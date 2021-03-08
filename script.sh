@@ -56,3 +56,21 @@
 #python code/statistics.py -gif_source_total_reply true -date_dir 20210301
 #python code/statistics.py -total_count true
 #python code/statistics.py -count_by_txt true
+
+#################
+## Data Format ##
+#################
+#python code/data_format.py -txt2json true -date_dir 20210217 -txt_file reply.txt -json_file reply.json
+#python code/data_format.py -txt2json true -date_dir 20210217 -txt_file gif_reply.txt -json_file gif_reply.json
+#python code/data_format.py -txt2json true -date_dir 20210218 -txt_file reply.txt -json_file reply.json
+#python code/data_format.py -txt2json true -date_dir 20210218 -txt_file gif_reply.txt -json_file gif_reply.json
+#python code/data_format.py -txt2json true -date_dir 20210218 -txt_file all_gif_reply.txt -json_file all_gif_reply.json
+#python code/data_format.py -txt2json true -date_dir 20210301 -txt_file reply.txt -json_file reply.json
+#python code/data_format.py -txt2json true -date_dir 20210301 -txt_file gif_reply.txt -json_file gif_reply.json
+#python code/data_format.py -txt2json true -date_dir 20210301 -txt_file all_gif_reply.txt -json_file all_gif_reply.json
+
+#python code/data_format.py -all2json true -date_dir 20210217 -json_file_index 0 -app_name AgainstRumor
+python code/data_format.py -all2json true -date_dir 20210218 -app_name AgainstRumor
+#python code/data_format.py -all2json true -date_dir 20210301
+
+#python code/data_format.py -write10json true -date_dir 20210217 -json_file all_gif_reply.json
