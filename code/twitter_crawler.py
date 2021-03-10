@@ -59,7 +59,7 @@ def parse_args():
 	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.txt") # for finding gif
 	parser.add_argument("-gif_dir", type=str, default="gif_reply") # for finding gif
 	parser.add_argument("-date_dir", type=str, default="20210301")
-	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/results")
+	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
 	
 	args=parser.parse_args()
@@ -111,11 +111,7 @@ def read_reply_file(filename):
 	return types, tweet_ids
 
 def fetch_source(args):
-	covid_exist_file    = "{}/source/covid_{}_replies.txt".format(args.result_path, args.min_replies)
-	no_covid_exist_file = "{}/source/no_covid_{}_replies.txt".format(args.result_path, args.min_replies)
-	covid_filename    = "{}/source/20210218/covid_{}_replies.txt".format(args.result_path, args.min_replies)
-	no_covid_filename = "{}/source/20210218/no_covid_{}_replies.txt".format(args.result_path, args.min_replies)
-
+	'''
 	## Read and count existing tweet ids
 	def read_existing(covid_exist_path, no_covid_exist_path, covid_exist_ids, no_covid_exist_ids):
 		tweet_ids, _ = read_source_file(covid_exist_path)
@@ -133,37 +129,32 @@ def fetch_source(args):
 	print("Existing source (   covid): {}".format(len(covid_exist_ids)))
 	print("Existing source (no_covid): {}".format(len(no_covid_exist_ids)))
 	print("")
+	'''
 
 	## Fetching
 	print("Fetching source tweets with min_replies: {}".format(args.min_replies))
-	covid_filename    = "{}/source/20210301/covid_{}_replies.txt".format(args.result_path, args.min_replies)
-	no_covid_filename = "{}/source/20210301/no_covid_{}_replies.txt".format(args.result_path, args.min_replies)
-	covid_tweet_list, no_covid_tweet_list = [], []
-	f_covid    = open(covid_filename, "w")
-	f_no_covid = open(no_covid_filename, "w")
-	
+
+	filename = "{}/reply/{}/source.txt".format(args.result_path, args.date_dir)
+	tweet_list = []
+	f = open(filename, "w")
+
 	iter = 0
 	while True:
 		try:
 			for i, tweet in enumerate(sntwitter.TwitterSearchScraper(args.query).get_items()):
-				if "covid" in tweet.content.lower():
-					if tweet.id not in covid_tweet_list and str(tweet.id) not in covid_exist_ids: ###
-						covid_tweet_list.append(tweet.id)
-						f_covid.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>")))
-				else:
-					if tweet.id not in no_covid_tweet_list and str(tweet.id) not in no_covid_exist_ids: ###
-						no_covid_tweet_list.append(tweet.id)
-						f_no_covid.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>")))
+				if tweet.id not in tweet_list:
+					if "#fakenews" not in tweet.content.lower():
+						tweet_list.append(tweet.id)
+						f.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>").replace("\n", "<newline>")))
 
-			print("Iteration {}, covid: {}, no_covid: {}".format(iter, len(covid_tweet_list), len(no_covid_tweet_list)))
+			print("Iteration {}: {}".format(iter, len(tweet_list)))
 			iter += 1
 
 		except KeyboardInterrupt:
 			print("KeyboardInterrupt, stop fetching source.")
 			break
 	
-	f_covid.close()
-	f_no_covid.close()
+	f.close()
 
 def install_chrome_driver(args):
 	## 0. Install ChromeDriver automatically

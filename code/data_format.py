@@ -1,4 +1,5 @@
 import json
+import shutil
 import argparse
 import configparser
 from tqdm import tqdm
@@ -25,13 +26,14 @@ def parse_args():
 	parser.add_argument("-txt2json", type=str2bool, default=False)
 	parser.add_argument("-write10json", type=str2bool, default=False)
 	parser.add_argument("-all2json", type=str2bool, default=False)
+	parser.add_argument("-final_format", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-txt_file", type=str, default="reply.txt")
 	parser.add_argument("-json_file", type=str, default="reply.json")
 	parser.add_argument("-json_file_index", type=str, default="0")
 	parser.add_argument("-date_dir", type=str, default="20210301")
-	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/results")
+	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
 
 	args=parser.parse_args()
 	
@@ -177,6 +179,39 @@ def all2json(args):
 	
 	with open(output_path, "w") as fw:
 		json.dump(result_list, fw, indent=4)
+
+def final_format(args):
+	'''
+	input_path = "{}/reply/{}/labeled.json".format(args.result_path, args.date_dir)
+	output_path = "{}/reply/{}/labeled_new.json".format(args.result_path, args.date_dir)
+
+	f = open(input_path, "r")
+	dict_list = json.load(f)
+	f.close()
+
+	fw = open(output_path, "w")
+	for dict in tqdm(dict_list):
+		json.dump(dict, fw)
+		fw.write("\n")
+	fw.close()
+	'''
+
+	dict_list = []
+	for idx in range(10):
+		input_path = "{}/reply/{}/10_split/labeled_{}.json".format(args.result_path, args.date_dir, idx)
+
+		f = open(input_path, "r")
+		list = json.load(f)
+		f.close()
+
+		dict_list += list
+
+	output_path = "{}/reply/{}/labeled.json".format(args.result_path, args.date_dir)
+	fw = open(output_path, "w")
+	for dict in tqdm(dict_list):
+		json.dump(dict, fw)
+		fw.write("\n")
+	fw.close()
 			
 def main(args):
 	if args.txt2json:
@@ -185,6 +220,8 @@ def main(args):
 		all2json(args)
 	elif args.write10json:
 		write10json(args)
+	elif args.final_format:
+		final_format(args)
 
 if __name__ == "__main__":
 	args = parse_args()

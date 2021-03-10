@@ -3,6 +3,7 @@
 ##################
 #python code/twitter_crawler.py -fetch_source true -query "(#FakeNews) min_replies:5 lang:en"
 #python code/twitter_crawler.py -fetch_source true -query "covid (#FakeNews) min_replies:5 lang:en"
+python code/twitter_crawler.py -fetch_source true -date_dir 20210310 -query "min_replies:5 lang:en"
 
 ###################
 ## Fetch Replies ##
@@ -54,8 +55,18 @@
 #python code/statistics.py -gif_source_total_reply true -date_dir 20210217
 #python code/statistics.py -gif_source_total_reply true -date_dir 20210218
 #python code/statistics.py -gif_source_total_reply true -date_dir 20210301
-#python code/statistics.py -total_count true
+#python code/statistics.py -total_count true -date_dir 20210217
+#python code/statistics.py -total_count true -date_dir 20210218
+#python code/statistics.py -total_count true -date_dir 20210301
 #python code/statistics.py -count_by_txt true
+
+#python code/statistics.py -count_miss_gif true -date_dir 20210217
+#python code/statistics.py -count_miss_gif true -date_dir 20210218
+#python code/statistics.py -count_miss_gif true -date_dir 20210301
+
+#python code/statistics.py -insert_missing true -date_dir 20210217
+python code/statistics.py -insert_missing true -date_dir 20210218
+python code/statistics.py -insert_missing true -date_dir 20210301
 
 #################
 ## Data Format ##
@@ -70,7 +81,11 @@
 #python code/data_format.py -txt2json true -date_dir 20210301 -txt_file all_gif_reply.txt -json_file all_gif_reply.json
 
 #python code/data_format.py -all2json true -date_dir 20210217 -json_file_index 0 -app_name AgainstRumor
-python code/data_format.py -all2json true -date_dir 20210218 -app_name AgainstRumor
+#python code/data_format.py -all2json true -date_dir 20210218 -app_name AgainstRumor
 #python code/data_format.py -all2json true -date_dir 20210301
 
 #python code/data_format.py -write10json true -date_dir 20210217 -json_file all_gif_reply.json
+
+#python code/data_format.py -final_format true -date_dir 20210217
+#python code/data_format.py -final_format true -date_dir 20210218
+#python code/data_format.py -final_format true -date_dir 20210301

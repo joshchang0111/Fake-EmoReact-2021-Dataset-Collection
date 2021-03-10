@@ -1,4 +1,6 @@
+import json
 import argparse
+from tqdm import tqdm
 
 def str2bool(str):
 	if str.lower() == "false":
@@ -13,9 +15,11 @@ def parse_args():
 	parser.add_argument("-total_count", type=str2bool, default=False)
 	parser.add_argument("-gif_source_total_reply", type=str2bool, default=False)
 	parser.add_argument("-count_by_txt", type=str2bool, default=False)
+	parser.add_argument("-count_miss_gif", type=str2bool, default=False)
+	parser.add_argument("-insert_missing", type=str2bool, default=False)
 
 	# other arguments
-	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/results")
+	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
 	parser.add_argument("-date_dir", type=str, default="20210301")
 
 	args=parser.parse_args()
@@ -41,11 +45,29 @@ def total_count(args):
 	'''
 	Calculate total amount of source and replies.
 	'''
+	'''
+	### by .txt
 	source_list, reply_list = [], []
 	input_path = "{}/reply/{}/gif_reply.txt".format(args.result_path, args.date_dir)
 	source_list, reply_list = count(input_path, source_list, reply_list)
 
 	print("# of source (gif): {}".format(len(source_list)))
+	print("# of reply  (gif): {}".format(len(reply_list)))
+	'''
+
+	### by .json
+	input_path = "{}/reply/{}/gif_reply.json".format(args.result_path, args.date_dir)
+	
+	f_json = open(input_path)
+	conv_dict_list = json.load(f_json)
+	f_json.close()
+
+	reply_list = []
+	for conv_dict in conv_dict_list:
+		for source_id, replies in conv_dict.items():
+			reply_list += replies
+
+	print("# of source (gif): {}".format(len(conv_dict_list)))
 	print("# of reply  (gif): {}".format(len(reply_list)))
 
 def gif_source_total_reply(args):
@@ -108,6 +130,91 @@ def count_by_txt(args):
 		print("-- without keywords --")
 		print("# of source (gif): {}".format(len(src_wo_key)))
 
+def count_miss_gif(args):
+	## get gif reply from "gif_reply.json"
+	input_path = "{}/reply/{}/gif_reply.json".format(args.result_path, args.date_dir)
+	
+	f_json = open(input_path, "r")
+	conv_dict_list = json.load(f_json)
+	f_json.close()
+
+	reply_list = []
+	for conv_dict in conv_dict_list:
+		for source_id, replies in conv_dict.items():
+			for reply in replies:
+				reply_list.append([source_id, reply])
+
+	## get replies from "labeled.json"
+	labeled_reply = []
+	input_path = "{}/reply/{}/labeled.json".format(args.result_path, args.date_dir)
+	for line in tqdm(open(input_path, "r").readlines()):
+		line = line.strip().rstrip()
+		data = json.loads(line)
+
+		labeled_reply.append(data["reply_id"])
+
+	## count unlabeled gif reply
+	unlabeled_gif_reply = []
+	for source, reply in tqdm(reply_list):
+		if reply not in labeled_reply:
+			unlabeled_gif_reply.append([source, reply])
+
+	print("Unlabeled GIF reply: {}".format(len(unlabeled_gif_reply)))
+
+	## get source dict
+	source_dict = {}
+	for line in open("{}/reply/{}/gif_source.txt".format(args.result_path, args.date_dir)):
+		line = line.strip().rstrip()
+		id, text = line.split("\t")[0], line.split("\t")[1]
+		source_dict[id] = text
+
+	fw = open("{}/reply/{}/labeled_new.json".format(args.result_path, args.date_dir), "w")
+	for source, gif_reply in unlabeled_gif_reply:
+		f_json = open("{}/reply/{}/gif_reply/{}/reply/{}.json".format(args.result_path, args.date_dir, source, gif_reply))
+		data = json.load(f_json)
+		f_json.close()
+		dict = {}
+		dict["idx"] = source
+		dict["text"] = source_dict[source]
+		dict["categories"] = []
+		dict["reply"] = data["full_text"]
+		dict["reply_id"] = gif_reply
+		dict["mp4"] = "{}.mp4".format(gif_reply)
+		json.dump(dict, fw)
+		fw.write("\n")
+	fw.close()
+
+def insert_missing(args):
+	missing_datas = []
+	input_path = "{}/reply/{}/labeled_new.json".format(args.result_path, args.date_dir)
+	for line in tqdm(open(input_path, "r").readlines()):
+		line = line.strip().rstrip()
+		data = json.loads(line)
+		missing_datas.append(data)
+
+	datas = []
+	input_path = "{}/reply/{}/labeled.json".format(args.result_path, args.date_dir)
+	for line in tqdm(open(input_path, "r").readlines()):
+		line = line.strip().rstrip()
+		data = json.loads(line)
+		datas.append(data)
+
+	print("Before inserting: {}".format(len(datas)))
+
+	for missing_data in tqdm(missing_datas):
+		for index, data in enumerate(datas):
+			if missing_data["idx"] == data["idx"]:
+				datas.insert(index, missing_data)
+				break
+
+	print("After inserting: {}".format(len(datas)))
+
+	fw = open("{}/reply/{}/all_labeled.json".format(args.result_path, args.date_dir), "w")
+	for data in datas:
+		json.dump(data, fw)
+		fw.write("\n")
+	fw.close()
+	
 def main(args):
 	if args.total_count:
 		total_count(args)
@@ -115,6 +222,10 @@ def main(args):
 		gif_source_total_reply(args)
 	elif args.count_by_txt:
 		count_by_txt(args)
+	elif args.count_miss_gif:
+		count_miss_gif(args)
+	elif args.insert_missing:
+		insert_missing(args)
 
 if __name__ == "__main__":
 	args = parse_args()
