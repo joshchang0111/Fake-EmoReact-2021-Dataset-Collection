@@ -1,5 +1,6 @@
 import json
 import shutil
+import random
 import argparse
 import configparser
 from tqdm import tqdm
@@ -27,13 +28,18 @@ def parse_args():
 	parser.add_argument("-write10json", type=str2bool, default=False)
 	parser.add_argument("-all2json", type=str2bool, default=False)
 	parser.add_argument("-final_format", type=str2bool, default=False)
+	parser.add_argument("-split_train_test", type=str2bool, default=False)
+	parser.add_argument("-from_EmotionGIF", type=str2bool, default=False)
+	parser.add_argument("-merge", type=str2bool, default=False)
+	parser.add_argument("-for_lab1", type=str2bool, default=False)
+	parser.add_argument("-split_context_GIF", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-txt_file", type=str, default="reply.txt")
 	parser.add_argument("-json_file", type=str, default="reply.json")
 	parser.add_argument("-json_file_index", type=str, default="0")
 	parser.add_argument("-date_dir", type=str, default="20210301")
-	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
+	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF")
 
 	args=parser.parse_args()
 	
@@ -181,38 +187,251 @@ def all2json(args):
 		json.dump(result_list, fw, indent=4)
 
 def final_format(args):
-	'''
-	input_path = "{}/reply/{}/labeled.json".format(args.result_path, args.date_dir)
-	output_path = "{}/reply/{}/labeled_new.json".format(args.result_path, args.date_dir)
+	def write_gold(output_path, new_dict, from_idx, to_idx):
+		file_dir = output_path.split("/")[-2]
+		print("Writing {} gold".format(file_dir))
+	
+		fw = open(output_path, "w", encoding="utf-8")
+		for source_id, json_datas in tqdm(list(new_dict.items())[from_idx:to_idx]):
+			for json_data in json_datas:
+				if "GIF" == file_dir:
+					if json_data["mp4"] != "":
+						fw.write(json.dumps(json_data, ensure_ascii=False)) # for writing emojis
+						fw.write("\n")
+				elif "context" == file_dir:
+					if json_data["mp4"] == "":
+						fw.write(json.dumps(json_data, ensure_ascii=False)) # for writing emojis
+						fw.write("\n")
+				else:
+					fw.write(json.dumps(json_data, ensure_ascii=False)) # for writing emojis
+					fw.write("\n")
 
-	f = open(input_path, "r")
-	dict_list = json.load(f)
-	f.close()
+		fw.close()
 
-	fw = open(output_path, "w")
-	for dict in tqdm(dict_list):
-		json.dump(dict, fw)
-		fw.write("\n")
-	fw.close()
-	'''
+	## 1. Read from all date_dir
+	json_list = []
 
-	dict_list = []
-	for idx in range(10):
-		input_path = "{}/reply/{}/10_split/labeled_{}.json".format(args.result_path, args.date_dir, idx)
+	date_dirs = ["20210217", "20210218", "20210301"]
+	for date_dir in date_dirs:
+		print("Reading all_labeled.json from {}".format(date_dir))
 
-		f = open(input_path, "r")
-		list = json.load(f)
-		f.close()
+		input_path = "{}/reply/{}/all_labeled.json".format(args.result_path, date_dir)
+		for line in tqdm(open(input_path, encoding="utf-8").readlines()):
+			line = line.strip().rstrip()
+			json_list.append(json.loads(line))
+	#print(len(json_list))
 
-		dict_list += list
+	## 2. Build a dict with all idx as keys
+	print()
+	print("Processing")
+	dict_list = {}
+	for json_data in tqdm(json_list):
+		if json_data["idx"] not in dict_list:
+			dict_list[json_data["idx"]] = []
+		dict_list[json_data["idx"]].append(json_data)
 
-	output_path = "{}/reply/{}/labeled.json".format(args.result_path, args.date_dir)
-	fw = open(output_path, "w")
-	for dict in tqdm(dict_list):
-		json.dump(dict, fw)
-		fw.write("\n")
-	fw.close()
+	new_dict = {}
+	for index, (source_id, json_datas) in enumerate(tqdm(dict_list.items())):
+		new_dict[source_id] = []
+		# Sort by reply_id
+		json_datas = sorted(json_datas, key=lambda s:s["reply_id"])
+		for context_idx, json_data in enumerate(json_datas):
+			new_data = {}
+			sub_idx = json_data["text"].lower().find("#fakenews")
+			sub_len = len("#fakenews")
+			new_data["idx"] = index
+			new_data["text"] = json_data["text"].replace(json_data["text"][sub_idx:sub_idx + sub_len], "")
+			new_data["categories"] = json_data["categories"]
+			new_data["context_idx"] = context_idx
+			new_data["reply"] = json_data["reply"]
+			new_data["mp4"] = json_data["mp4"].replace("None", "")
+			new_data["label"] = "fake"
 			
+			new_dict[source_id].append(new_data)
+
+	## 3. Write gif reply and text reply respectively
+	print()
+	#write_gold("{}/final/from_FakeNewsGIF/context/all_gold.json".format(args.result_path), new_dict, 0, len(list(new_dict.items())))
+	#write_gold("{}/final/from_FakeNewsGIF/GIF/all_gold.json".format(args.result_path), new_dict, 0, len(list(new_dict.items())))
+	write_gold("{}/final/from_FakeNewsGIF/all_gold.json".format(args.result_path), new_dict, 0, len(list(new_dict.items())))
+
+def from_EmotionGIF(args):
+	"""
+	Arrange EmotionGIF dataset to FakeNewsGIF format.
+	"""
+	files = ["train_gold.json", "dev_gold.json", "eval_gold.json"]
+	for file in files:
+		input_path = "/mnt/hdd1/joshchang/datasets/EmotionGIF/{}".format(file)
+		json_list = []
+		for line in tqdm(open(input_path, encoding="utf-8").readlines()):
+			line = line.strip().rstrip()
+			json_list.append(json.loads(line))
+		
+		new_datas = []
+		for json_data in tqdm(json_list):
+			new_data = {}
+			new_data["idx"] = json_data["idx"]
+			new_data["text"] = json_data["text"]
+			new_data["categories"] = json_data["categories"]
+			new_data["context_idx"] = 0
+			new_data["reply"] = json_data["reply"]
+			new_data["mp4"] = json_data["mp4"]
+			if "#fakenews" in json_data["text"].lower():
+				sub_idx = json_data["text"].lower().find("#fakenews")
+				sub_len = len("#fakenews")
+				new_data["text"] = json_data["text"].replace(json_data["text"][sub_idx:sub_idx + sub_len], "")
+				new_data["label"] = "fake"
+			else:
+				new_data["label"] = "real"
+			new_datas.append(new_data)
+		
+		output_path = "/mnt/hdd1/joshchang/datasets/FakeNewsGIF/final/{}".format(file)
+		fw = open(output_path, "w", encoding="utf-8")
+		for new_data in tqdm(new_datas):
+			#json.dump(new_data, fw)
+			fw.write(json.dumps(new_data, ensure_ascii=False))
+			fw.write("\n")
+		fw.close()
+
+def read_gold_to_dict(file_path, data_dict):
+	for line in tqdm(open(file_path, encoding="utf-8").readlines()):
+		line = line.strip().rstrip()
+		json_data = json.loads(line)
+		if json_data["idx"] not in data_dict:
+			data_dict[json_data["idx"]] = []
+		data_dict[json_data["idx"]].append(json_data)
+	return data_dict
+
+def merge(args):
+	"""
+	Merge dataset from EmotionGIF and FakeNewsGIF.
+	EmotionGIF: All for training.
+	FakeNewsGIF: 4000 source tweets for training.
+	"""
+	def write_list(path_out, tgt_list):
+		fw = open(path_out, "w", encoding="utf-8")
+		for merge_data_list in tqdm(tgt_list):
+			for merge_data in merge_data_list:
+				fw.write(json.dumps(merge_data, ensure_ascii=False))
+				fw.write("\n")
+		fw.close()
+
+	path_emotion = "{}/final/from_EmotionGIF".format(args.result_path)
+	path_fakenews = "{}/final/from_FakeNewsGIF".format(args.result_path)
+	
+	print("Reading from_EmotionGIF")
+	emotion_dict = {}
+	files = ["train_gold.json", "dev_gold.json", "eval_gold.json"]
+	for file in files:
+		file_path = "{}/{}".format(path_emotion, file)
+		emotion_dict = read_gold_to_dict(file_path, emotion_dict)
+
+	print(len(list(emotion_dict.items())))
+
+	print()
+	print("Reading from_FakeNewsGIF")
+	fakenews_dict = {}
+	file_path = "{}/all_gold.json".format(path_fakenews)
+	fakenews_dict = read_gold_to_dict(file_path, fakenews_dict)
+
+	print(len(list(fakenews_dict.items())))
+
+	print()
+	print("Merging GIF training data of two datasets")
+	## EmotionGIF: all for training
+	## FakeNewsGIF: 4000 source tweets for training, the rest are for testing
+	train_fake_emotion, test_fake = [], []
+	for source_id, reply_list in tqdm(list(emotion_dict.items())):
+		train_fake_emotion.append(reply_list)
+	for source_id, reply_list in tqdm(list(fakenews_dict.items())[:4000]):
+		train_fake_emotion.append(reply_list)
+	for source_id, reply_list in tqdm(list(fakenews_dict.items())[4000:]):
+		test_fake.append(reply_list)
+
+	## shuffle data of two labels
+	random.shuffle(train_fake_emotion)
+
+	## give new index
+	for new_idx, reply_list in enumerate(tqdm(train_fake_emotion)):
+		for reply in reply_list:
+			reply["idx"] = new_idx
+
+	for new_idx, reply_list in enumerate(tqdm(test_fake)):
+		for reply in reply_list:
+			reply["idx"] = new_idx + len(train_fake_emotion)
+
+	print(len(train_fake_emotion))
+	print(len(test_fake))
+
+	print()
+	print("writing merge train / test file")
+	path_merge = "{}/final/merge".format(args.result_path)
+	train_path = "{}/train_gold(context+GIF).json".format(path_merge)
+	test_path = "{}/test_gold(context+GIF).json".format(path_merge)
+
+	write_list(train_path, train_fake_emotion)
+	write_list(test_path, test_fake)
+
+def split_context_GIF(args):
+	"""
+	Splitting context and GIF files from all.
+	"""
+	print("Reading all")
+	path_merge = "{}/final/merge".format(args.result_path)
+	all_path = "{}/train_gold(context+GIF).json".format(path_merge)
+
+	all_dict = {}
+	all_dict = read_gold_to_dict(all_path, all_dict)
+
+	print()
+	print("Writing merge training file")
+	gif_path = "{}/GIF/train_gold.json".format(path_merge)
+	context_path = "{}/context/train_gold.json".format(path_merge)
+
+	fw_gif = open(gif_path, "w", encoding="utf-8")
+	fw_context = open(context_path, "w", encoding="utf-8")
+	for source_idx, merge_data_list in tqdm(list(all_dict.items())):
+		for merge_data in merge_data_list:
+			if merge_data["mp4"] == "":
+				fw_context.write(json.dumps(merge_data, ensure_ascii=False))
+				fw_context.write("\n")
+			else:
+				fw_gif.write(json.dumps(merge_data, ensure_ascii=False))
+				fw_gif.write("\n")
+	fw_gif.close()
+	fw_context.close()
+
+def for_lab1(args):
+	"""
+	Data for NLP Lab1.
+	"""
+	dirs = ["context", "GIF"]
+	for dir in dirs:
+		print()
+		print("Reading {} from merge".format(dir))
+		
+		path_in = "{}/final/merge/{}/all_gold.json".format(args.result_path, dir)
+		json_list = []
+		for line in tqdm(open(path_in, encoding="utf-8").readlines()):
+			line = line.strip().rstrip()
+			json_data = json.loads(line)
+			json_list.append(json_data)
+
+		print()
+		print("Processing for lab1 format, writing to lab1 directory")
+
+		path_out = "{}/final/lab1/{}.json".format(args.result_path, dir)
+		fw = open(path_out, "w", encoding="utf-8")
+		for json_data in tqdm(json_list):
+			del json_data["label"]
+			del json_data["categories"]
+			del json_data["context_idx"]
+			del json_data["mp4"]
+			fw.write(json.dumps(json_data, ensure_ascii=False))
+			fw.write("\n")
+		fw.close()
+
+
 def main(args):
 	if args.txt2json:
 		txt2json(args)
@@ -222,6 +441,16 @@ def main(args):
 		write10json(args)
 	elif args.final_format:
 		final_format(args)
+	elif args.split_train_test:
+		split_train_test(args)
+	elif args.from_EmotionGIF:
+		from_EmotionGIF(args)
+	elif args.merge:
+		merge(args)
+	elif args.for_lab1:
+		for_lab1(args)
+	elif args.split_context_GIF:
+		split_context_GIF(args)
 
 if __name__ == "__main__":
 	args = parse_args()

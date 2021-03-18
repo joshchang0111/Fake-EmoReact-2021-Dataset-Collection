@@ -3,7 +3,7 @@
 ##################
 #python code/twitter_crawler.py -fetch_source true -query "(#FakeNews) min_replies:5 lang:en"
 #python code/twitter_crawler.py -fetch_source true -query "covid (#FakeNews) min_replies:5 lang:en"
-python code/twitter_crawler.py -fetch_source true -date_dir 20210310 -query "min_replies:5 lang:en"
+#python code/twitter_crawler.py -fetch_source true -date_dir 20210310 -query "min_replies:5 lang:en"
 
 ###################
 ## Fetch Replies ##
@@ -65,8 +65,8 @@ python code/twitter_crawler.py -fetch_source true -date_dir 20210310 -query "min
 #python code/statistics.py -count_miss_gif true -date_dir 20210301
 
 #python code/statistics.py -insert_missing true -date_dir 20210217
-python code/statistics.py -insert_missing true -date_dir 20210218
-python code/statistics.py -insert_missing true -date_dir 20210301
+#python code/statistics.py -insert_missing true -date_dir 20210218
+#python code/statistics.py -insert_missing true -date_dir 20210301
 
 #################
 ## Data Format ##
@@ -89,3 +89,8 @@ python code/statistics.py -insert_missing true -date_dir 20210301
 #python code/data_format.py -final_format true -date_dir 20210217
 #python code/data_format.py -final_format true -date_dir 20210218
 #python code/data_format.py -final_format true -date_dir 20210301
+#python code/data_format.py -final_format true
+#python code/data_format.py -from_EmotionGIF true
+#python code/data_format.py -merge true
+#python code/data_format.py -for_lab1 true
+python code/data_format.py -split_context_GIF true
