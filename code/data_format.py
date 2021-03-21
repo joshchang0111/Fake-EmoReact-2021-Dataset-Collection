@@ -1,3 +1,4 @@
+import os
 import json
 import shutil
 import random
@@ -33,6 +34,7 @@ def parse_args():
 	parser.add_argument("-merge", type=str2bool, default=False)
 	parser.add_argument("-for_lab1", type=str2bool, default=False)
 	parser.add_argument("-split_context_GIF", type=str2bool, default=False)
+	parser.add_argument("-remove_corrupted_mp4", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-txt_file", type=str, default="reply.txt")
@@ -331,7 +333,7 @@ def merge(args):
 	print()
 	print("Reading from_FakeNewsGIF")
 	fakenews_dict = {}
-	file_path = "{}/all_gold.json".format(path_fakenews)
+	file_path = "{}/new_all_gold.json".format(path_fakenews)
 	fakenews_dict = read_gold_to_dict(file_path, fakenews_dict)
 
 	print(len(list(fakenews_dict.items())))
@@ -431,6 +433,62 @@ def for_lab1(args):
 			fw.write("\n")
 		fw.close()
 
+def remove_corrupted_mp4(args):
+	"""
+	Remove FakeNewsGIF tweets that contains mp4 file that can not be read by opencv.
+	"""
+	path_frames = "{}/final/merge/frames/FakeNewsGIF".format(args.result_path)
+	path_mp4s = "{}/final/merge/mp4s/FakeNewsGIF".format(args.result_path)
+
+	ok_mp4s, not_ok_mp4s = [], []
+	all_frames = os.listdir(path_frames)
+	for frame_file in tqdm(all_frames):
+		if ".jpg" not in frame_file and frame_file[0] == ".":
+			continue
+		ok_mp4s.append("{}.mp4".format(frame_file.split(".")[0]))
+
+	all_mp4s = os.listdir(path_mp4s)
+	for mp4_file in tqdm(all_mp4s):
+		if ".mp4" not in mp4_file and mp4_file[0] == ".":
+			continue
+		if mp4_file not in ok_mp4s:
+			not_ok_mp4s.append(mp4_file)
+	'''
+	## read gif content, build dict
+	not_ok_idx = []
+	dict_list = {}
+	path_all_tweets = "{}/final/from_FakeNewsGIF/all_gold.json".format(args.result_path)
+	for line in tqdm(open(path_all_tweets, encoding="utf-8").readlines()):
+		line = line.strip().rstrip()
+		json_data = json.loads(line)
+		if json_data["mp4"] in not_ok_mp4s:
+			not_ok_idx.append(json_data["idx"])
+		if json_data["idx"] not in dict_list:
+			dict_list[json_data["idx"]] = []
+		dict_list[json_data["idx"]].append(json_data)
+	not_ok_idx = set(not_ok_idx)
+	print(len(not_ok_idx))
+	print(len(list(dict_list.items())))
+
+	## give new idx and write
+	new_list = []
+	for idx, reply_list in tqdm(list(dict_list.items())):
+		if idx in not_ok_idx:
+			continue
+		new_list.append(reply_list)
+	print(len(new_list))
+
+	new_all_tweets = "{}/final/from_FakeNewsGIF/new_all_gold.json".format(args.result_path)
+	fw = open(new_all_tweets, "w", encoding="utf-8")
+	for new_idx, reply_list in enumerate(tqdm(new_list)):
+		for reply in reply_list:
+			reply["idx"] = new_idx
+			fw.write(json.dumps(reply, ensure_ascii=False))
+			fw.write("\n")
+	fw.close()
+	'''
+	for not_ok_mp4 in tqdm(not_ok_mp4s):
+		os.remove("{}/final/merge/mp4s/FakeNewsGIF/{}".format(args.result_path, not_ok_mp4))
 
 def main(args):
 	if args.txt2json:
@@ -451,6 +509,8 @@ def main(args):
 		for_lab1(args)
 	elif args.split_context_GIF:
 		split_context_GIF(args)
+	elif args.remove_corrupted_mp4:
+		remove_corrupted_mp4(args)
 
 if __name__ == "__main__":
 	args = parse_args()

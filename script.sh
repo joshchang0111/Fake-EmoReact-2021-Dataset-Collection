@@ -91,6 +91,20 @@
 #python code/data_format.py -final_format true -date_dir 20210301
 #python code/data_format.py -final_format true
 #python code/data_format.py -from_EmotionGIF true
-#python code/data_format.py -merge true
 #python code/data_format.py -for_lab1 true
-python code/data_format.py -split_context_GIF true
+#python code/data_format.py -merge true
+#python code/data_format.py -split_context_GIF true
+
+#python code/data_format.py -remove_corrupted_mp4 true
+
+###########################
+## Label mp4s categories ##
+###########################
+#python code/label_gif.py -merge_mp4s true
+#python code/label_gif.py -mp4_frames true
+#python code/label_gif.py -find_similar_img true -part 0
+#python code/label_gif.py -construct_categories_table true
+#python code/label_gif.py -merge_EmotionGIF_mp4s true
+#python code/label_gif.py -merge_10_json true
+python code/label_gif.py -analyze_FakeNewsGIF_labels true
+#python code/label_gif.py -labeling_mp4s true -part 0

@@ -1,4 +1,5 @@
 import os
+import pdb
 import time
 import json
 import random
@@ -58,7 +59,7 @@ def parse_args():
 	parser.add_argument("-reply_file", type=str, default="reply.txt")
 	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.txt") # for finding gif
 	parser.add_argument("-gif_dir", type=str, default="gif_reply") # for finding gif
-	parser.add_argument("-date_dir", type=str, default="20210301")
+	parser.add_argument("-date_dir", type=str, default="20210318")
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
 	
@@ -111,28 +112,24 @@ def read_reply_file(filename):
 	return types, tweet_ids
 
 def fetch_source(args):
-	'''
-	## Read and count existing tweet ids
-	def read_existing(covid_exist_path, no_covid_exist_path, covid_exist_ids, no_covid_exist_ids):
-		tweet_ids, _ = read_source_file(covid_exist_path)
-		covid_exist_ids += tweet_ids
-		tweet_ids, _ = read_source_file(no_covid_exist_path)
-		no_covid_exist_ids += tweet_ids
+	def read_existing():
+		print("Reading existing ids")
+		exist_ids = []
+		date_dirs = ["20210217", "20210218", "20210301"]
+		for date_dir in date_dirs:
+			path_in = "{}/reply/{}/gif_source.txt".format(args.result_path, date_dir)
+			for line in tqdm(open(path_in).readlines()):
+				line = line.strip().rstrip()
+				source_id = line.split("\t")[0]
+				exist_ids.append(source_id)
+		return exist_ids
 
-		return covid_exist_ids,  no_covid_exist_ids
-
-	print("Reading existing files (source id).")
-	covid_exist_ids, no_covid_exist_ids = [], []
-	covid_exist_ids, no_covid_exist_ids = read_existing(covid_exist_file, no_covid_exist_file, covid_exist_ids, no_covid_exist_ids)
-	covid_exist_ids, no_covid_exist_ids = read_existing(covid_filename, no_covid_filename, covid_exist_ids, no_covid_exist_ids)
-
-	print("Existing source (   covid): {}".format(len(covid_exist_ids)))
-	print("Existing source (no_covid): {}".format(len(no_covid_exist_ids)))
-	print("")
-	'''
+	## Reading existing ids
+	exist_ids = read_existing()
 
 	## Fetching
-	print("Fetching source tweets with min_replies: {}".format(args.min_replies))
+	print("Fetching source tweets")
+	print("query = {}".format(args.query))
 
 	filename = "{}/reply/{}/source.txt".format(args.result_path, args.date_dir)
 	tweet_list = []
@@ -142,10 +139,13 @@ def fetch_source(args):
 	while True:
 		try:
 			for i, tweet in enumerate(sntwitter.TwitterSearchScraper(args.query).get_items()):
-				if tweet.id not in tweet_list:
-					if "#fakenews" not in tweet.content.lower():
-						tweet_list.append(tweet.id)
-						f.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>").replace("\n", "<newline>")))
+				#pdb.set_trace()
+				if tweet.id not in tweet_list and str(tweet.id) not in exist_ids:
+					tweet_list.append(tweet.id)
+					f.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>").replace("\n", "<newline>")))
+					#if "#fakenews" not in tweet.content.lower():
+					#	tweet_list.append(tweet.id)
+					#	f.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>").replace("\n", "<newline>")))
 
 			print("Iteration {}: {}".format(iter, len(tweet_list)))
 			iter += 1
