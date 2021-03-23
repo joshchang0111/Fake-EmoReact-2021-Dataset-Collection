@@ -23,12 +23,15 @@ def parse_args():
 	# mode
 	parser.add_argument("-merge_mp4s", type=str2bool, default=False)
 	parser.add_argument("-mp4_frames", type=str2bool, default=False)
+	parser.add_argument("-gif_frames", type=str2bool, default=False)
 	parser.add_argument("-find_similar_img", type=str2bool, default=False)
 	parser.add_argument("-construct_categories_table", type=str2bool, default=False)
 	parser.add_argument("-merge_EmotionGIF_mp4s", type=str2bool, default=False)
 	parser.add_argument("-merge_10_json", type=str2bool, default=False)
 	parser.add_argument("-analyze_FakeNewsGIF_labels", type=str2bool, default=False)
 	parser.add_argument("-labeling_mp4s", type=str2bool, default=False)
+	parser.add_argument("-label_from_top100", type=str2bool, default=False)
+	parser.add_argument("-write2gold", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-part", type=int, default=0)
@@ -120,6 +123,22 @@ def mp4_frames(args):
 	#path_mp4 = "{}/final/merge/mp4s/FakeNewsGIF".format(args.result_path)
 	#path_frame = "{}/final/merge/frames/FakeNewsGIF".format(args.result_path)
 	#extract_frames(path_mp4, path_frame)
+
+def gif_frames(args):
+	def write_frame(video_file, out_frame_path):
+		vidcap = cv2.VideoCapture(video_file)
+		success, image = vidcap.read()
+		cv2.imwrite("{}/{}.jpg".format(out_frame_path, video_file.split("/")[-1].split(".")[0]), image)
+
+	categories = ["Agree", "Applause", "Awww", "Dance", "Deal with it", "Do not want", "Eww", "Eye roll", "Facepalm", "Fist bump", "Good luck", "Happy dance", "Hearts", "High five", "Hug", "IDK", "Kiss", "Mic drop", "No", "Oh snap", "Ok", "OMG", "Oops", "Please", "Popcorn", "Scared", "Seriously", "Shocked", "Shrug", "Sigh", "Slow clap", "SMH", "Sorry", "Thank you", "Thumbs down", "Thumbs up", "Want", "Win", "Wink", "Yawn", "Yes", "YOLO", "You got this"]
+	for category in tqdm(categories):
+		path_gif_category = "{}/final/merge/top100GIF/{}".format(args.result_path, category)
+		path_frame_category = "{}/final/merge/top100frame/{}".format(args.result_path, category)
+		os.makedirs(path_frame_category, exist_ok=True)
+
+		for idx in tqdm(range(100)):
+			path_gif = "{}/{}.gif".format(path_gif_category, idx)
+			write_frame(path_gif, path_frame_category)
 
 def construct_categories_table(args):
 	mp4_dict = {} # {"file name": list of categories}
@@ -268,11 +287,16 @@ def analyze_FakeNewsGIF_labels(args):
 	mp4_dict = json.load(open(path_in))
 
 	for labeled_mp4 in tqdm(labeled_files):
-		mp4_dict[labeled_mp4] = json_obj[labeled_mp4]
+		new_list = []
+		for label in json_obj[labeled_mp4]:
+			label = label.lower().replace(" ", "_")
+			new_list.append(label)
+		mp4_dict[labeled_mp4] = new_list
 
 	path_out = "{}/final/merge/FakeNewsGIF_labels_new.json".format(args.result_path)
 	json.dump(mp4_dict, open(path_out, "w"), indent=4)
 	'''
+	
 	path_in = "{}/final/merge/FakeNewsGIF_labels.json".format(args.result_path)
 	
 	json_obj = json.load(open(path_in))
@@ -290,6 +314,7 @@ def analyze_FakeNewsGIF_labels(args):
 	for unlabeled_file in tqdm(unlabeled_files):
 		fw.write("{}\n".format(unlabeled_file))
 	fw.close()
+	
 
 def labeling_mp4s(args):
 	def labeling(mp4_dict, target_path, path_frames_pool, frames_pool):
@@ -354,11 +379,99 @@ def labeling_mp4s(args):
 	json.dump(new_dict, fw, indent=4)
 	fw.close()
 
+def label_from_top100(args):
+	def labeling(target_path):
+		categories = ["Agree", "Applause", "Awww", "Dance", "Deal with it", "Do not want", "Eww", "Eye roll", "Facepalm", "Fist bump", "Good luck", "Happy dance", "Hearts", "High five", "Hug", "IDK", "Kiss", "Mic drop", "No", "Oh snap", "Ok", "OMG", "Oops", "Please", "Popcorn", "Scared", "Seriously", "Shocked", "Shrug", "Sigh", "Slow clap", "SMH", "Sorry", "Thank you", "Thumbs down", "Thumbs up", "Want", "Win", "Wink", "Yawn", "Yes", "YOLO", "You got this"]
+
+		## parameters for image hashing
+		similarity, hash_size = 90, 8
+		threshold = 1 - similarity / 100
+		diff_limit = int(threshold * (hash_size ** 2))
+
+		## target image hashing
+		with Image.open(target_path) as img:
+			hash1 = imagehash.average_hash(img, hash_size).hash
+		
+		labels = []
+		## iterate through all categories
+		for category in categories:
+			## comparing target with all images of on category
+			path_frames_pool = "{}/final/merge/top100frame/{}".format(args.result_path, category)
+			for idx in range(100):
+				path_frame = "{}/{}.jpg".format(path_frames_pool, idx)
+				with Image.open(path_frame) as img:
+					hash2 = imagehash.average_hash(img, hash_size).hash
+					## if one image are similar with target
+					if np.count_nonzero(hash1 != hash2) <= diff_limit:
+						labels.append(category)
+						break
+
+		return labels
+
+	## Read unlabeled files
+	input_path = "{}/final/merge/unlabeled_files.txt".format(args.result_path)
+	unlabeled_files = []
+	for line in tqdm(open(input_path).readlines()):
+		line = line.strip().rstrip()
+		unlabeled_files.append(line)
+
+	## Split 10 portion
+	start_idx = int(args.part * (len(unlabeled_files) / 10))
+	end_idx = int((args.part + 1) * (len(unlabeled_files) / 10))
+	## Labeling
+	new_dict = {}
+	path_fakenews_frame = "{}/final/merge/frames/FakeNewsGIF".format(args.result_path)
+	for unlabeled_file in tqdm(unlabeled_files[start_idx:end_idx]):
+		target_path = "{}/{}.jpg".format(path_fakenews_frame, unlabeled_file.split(".")[0])
+		categories = labeling(target_path)
+		new_dict[unlabeled_file] = categories
+
+	fw = open("{}/final/merge/unlabeled_mp4s_labels_{}.json".format(args.result_path, args.part), "w")
+	json.dump(new_dict, fw, indent=4)
+	fw.close()
+
+def write2gold(args):
+	def read_gold(input_path):
+		gold_json_list = []
+		for line in tqdm(open(input_path, encoding="utf-8").readlines()):
+			line = line.strip().rstrip()
+			json_obj = json.loads(line)
+			gold_json_list.append(json_obj)
+		return gold_json_list
+
+	def read_GIF_labels(input_path):
+		mp4_dict = json.load(open(input_path))
+		return mp4_dict
+
+	#input_path = "{}/final/merge/all_gold(context+GIF).json".format(args.result_path)
+	input_path = "{}/final/from_FakeNewsGIF/new_all_gold.json".format(args.result_path)
+	gold_json_list = read_gold(input_path)
+
+	input_path = "{}/final/merge/FakeNewsGIF_labels.json".format(args.result_path)
+	mp4_dict = read_GIF_labels(input_path)
+	print(len(list(mp4_dict.items())))
+
+	new_gold_list = []
+	for gold_json in tqdm(gold_json_list):
+		if gold_json["mp4"] in mp4_dict:
+			gold_json["categories"] = mp4_dict[gold_json["mp4"]]
+		new_gold_list.append(gold_json)
+	print(len(new_gold_list))
+
+	output_path = "{}/final/from_FakeNewsGIF/new_all_gold(categories).json".format(args.result_path)
+	fw = open(output_path, "w", encoding="utf-8")
+	for new_gold in tqdm(new_gold_list):
+		fw.write(json.dumps(new_gold, ensure_ascii=False)) # for writing emojis
+		fw.write("\n")
+	fw.close()
+
 def main(args):
 	if args.merge_mp4s:
 		merge_mp4s(args)
 	elif args.mp4_frames:
 		mp4_frames(args)
+	elif args.gif_frames:
+		gif_frames(args)
 	elif args.find_similar_img:
 		find_similar_img(args)
 	elif args.construct_categories_table:
@@ -371,6 +484,10 @@ def main(args):
 		analyze_FakeNewsGIF_labels(args)
 	elif args.labeling_mp4s:
 		labeling_mp4s(args)
+	elif args.label_from_top100:
+		label_from_top100(args)
+	elif args.write2gold:
+		write2gold(args)
 
 if __name__ == "__main__":
 	args = parse_args()

@@ -333,7 +333,7 @@ def merge(args):
 	print()
 	print("Reading from_FakeNewsGIF")
 	fakenews_dict = {}
-	file_path = "{}/new_all_gold.json".format(path_fakenews)
+	file_path = "{}/new_all_gold(categories).json".format(path_fakenews)
 	fakenews_dict = read_gold_to_dict(file_path, fakenews_dict)
 
 	print(len(list(fakenews_dict.items())))

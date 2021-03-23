@@ -1,3 +1,4 @@
+import os
 import time
 import json
 import argparse
@@ -21,11 +22,16 @@ def parse_args():
 
 	# mode
 	parser.add_argument("-install_chrome_driver", type=str2bool, default="False")
-	parser.add_argument("-top100GIF", type=str2bool, default="False")
+	parser.add_argument("-crawl_100GIF_url", type=str2bool, default="False")
+	parser.add_argument("-fetch_100GIF_file", type=str2bool, default="False")
 	
 	# other arguments
 	parser.add_argument("-chrome_path", type=str, default="/Users/joshua/.wdm/drivers/chromedriver/mac64/89.0.4389.23/chromedriver")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
+	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF")
+
+	# args for splitting 10 fold
+	parser.add_argument("-part", type=int, default=0)	
 	
 	args=parser.parse_args()
 	
@@ -34,7 +40,7 @@ def parse_args():
 def install_chrome_driver(args):
 	driver = webdriver.Chrome(ChromeDriverManager().install())
 
-def top100GIF(args):
+def crawl_100GIF_url(args):
 	def create_driver(args):
 		## 1. Define browser options
 		chrome_options = Options()
@@ -113,11 +119,27 @@ def top100GIF(args):
 	## write to file
 	json.dump(categories_dict, open("top100GIF.json", "w"), indent=4)
 
+def fetch_100GIF_file(args):
+	input_path = "{}/final/merge/top100GIF/top100GIF.json".format(args.result_path)
+	urls_dict = json.load(open(input_path))
+
+	start_idx = int(args.part * (len(list(urls_dict.items())) / 10))
+	end_idx = int((args.part + 1) * (len(list(urls_dict.items())) / 10))
+
+	for category, urls in tqdm(list(urls_dict.items())[start_idx:end_idx]):
+		path_category = "{}/final/merge/top100GIF/{}".format(args.result_path, category)
+		os.makedirs(path_category, exist_ok=True)
+		for idx, gif_url in enumerate(tqdm(urls[:100])):
+			r = requests.get(gif_url, allow_redirects=True)
+			open("{}/{}.gif".format(path_category, idx), "wb").write(r.content)
+
 def main(args):
 	if args.install_chrome_driver:
 		install_chrome_driver(args)
-	elif args.top100GIF:
-		top100GIF(args)
+	elif args.crawl_100GIF_url:
+		crawl_100GIF_url(args)
+	elif args.fetch_100GIF_file:
+		fetch_100GIF_file(args)
 
 if __name__ == "__main__":
 	args = parse_args()
