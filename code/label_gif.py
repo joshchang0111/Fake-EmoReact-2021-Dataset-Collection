@@ -32,6 +32,7 @@ def parse_args():
 	parser.add_argument("-labeling_mp4s", type=str2bool, default=False)
 	parser.add_argument("-label_from_top100", type=str2bool, default=False)
 	parser.add_argument("-write2gold", type=str2bool, default=False)
+	parser.add_argument("-arrange_mp4_files", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-part", type=int, default=0)
@@ -297,7 +298,7 @@ def analyze_FakeNewsGIF_labels(args):
 	json.dump(mp4_dict, open(path_out, "w"), indent=4)
 	'''
 	
-	path_in = "{}/final/merge/FakeNewsGIF_labels.json".format(args.result_path)
+	path_in = "{}/final/merge/FakeNewsGIF_labels_new.json".format(args.result_path)
 	
 	json_obj = json.load(open(path_in))
 	labeled_files, unlabeled_files = [], []
@@ -310,11 +311,12 @@ def analyze_FakeNewsGIF_labels(args):
 	print("Unlabeled files: {}".format(len(unlabeled_files)))
 	print("Labeled files: {}".format(len(labeled_files)))
 
+	'''
 	fw = open("{}/final/merge/unlabeled_files.txt".format(args.result_path), "w")
 	for unlabeled_file in tqdm(unlabeled_files):
 		fw.write("{}\n".format(unlabeled_file))
 	fw.close()
-	
+	'''
 
 def labeling_mp4s(args):
 	def labeling(mp4_dict, target_path, path_frames_pool, frames_pool):
@@ -465,6 +467,43 @@ def write2gold(args):
 		fw.write("\n")
 	fw.close()
 
+def arrange_mp4_files(args):
+	## read mp4 file name
+	input_path = "{}/final/from_FakeNewsGIF/new_all_gold.json".format(args.result_path)
+	fakenews_mp4s = []
+	for line in tqdm(open(input_path, "r", encoding="utf-8").readlines()):
+		line = line.strip().rstrip()
+		json_obj = json.loads(line)
+		if json_obj["mp4"] != "":
+			fakenews_mp4s.append(json_obj["mp4"])
+	fakenews_mp4s = set(fakenews_mp4s)
+	print(len(fakenews_mp4s))
+
+	'''
+	## remove files that are at the same tree of corrupted file
+	path_mp4s = "{}/final/merge/mp4s".format(args.result_path)
+	mp4_files = os.listdir("{}/FakeNewsGIF".format(path_mp4s))
+	for mp4_file in tqdm(mp4_files):
+		if mp4_file[0] == "." and ".mp4" not in "mp4_file":
+			continue
+		if mp4_file not in fakenews_mp4s:
+			src = "{}/FakeNewsGIF/{}".format(path_mp4s, mp4_file)
+			dst = "{}/removed_FakeNewsGIF/{}".format(path_mp4s, mp4_file)
+			shutil.move(src, dst)
+	'''
+
+	## arrange mp4 label file
+	input_path = "{}/final/merge/FakeNewsGIF_labels.json".format(args.result_path)
+	json_obj = json.load(open(input_path))
+	print(len(list(json_obj.items())))
+	for mp4_file, categories in tqdm(list(json_obj.items())):
+		if mp4_file not in fakenews_mp4s:
+			del json_obj[mp4_file]
+	print(len(list(json_obj.items())))
+
+	output_path = "{}/final/merge/FakeNewsGIF_labels_new.json".format(args.result_path)
+	json.dump(json_obj, open(output_path, "w"), indent=4)
+
 def main(args):
 	if args.merge_mp4s:
 		merge_mp4s(args)
@@ -488,6 +527,8 @@ def main(args):
 		label_from_top100(args)
 	elif args.write2gold:
 		write2gold(args)
+	elif args.arrange_mp4_files:
+		arrange_mp4_files(args)
 
 if __name__ == "__main__":
 	args = parse_args()

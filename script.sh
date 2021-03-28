@@ -17,11 +17,12 @@
 ##############
 ## Find GIF ##
 ##############
-#python code/twitter_crawler.py \
-#	-app_name AgainstRumor \
-#	-find_gif true \
-#	-reply_file reply.txt \
-#	-gif_reply_file gif_reply.txt \
+python code/twitter_crawler.py \
+	-app_name AgainstRumor \
+	-find_gif true \
+	-reply_file reply.json \
+	-part 0
+	#-gif_reply_file gif_reply.json \
 #	-gif_dir gif_reply
 #
 #
@@ -68,10 +69,12 @@
 #python code/statistics.py -insert_missing true -date_dir 20210218
 #python code/statistics.py -insert_missing true -date_dir 20210301
 
+#python code/statistics.py -read_final_and_test true
+
 #################
 ## Data Format ##
 #################
-#python code/data_format.py -txt2json true -date_dir 20210217 -txt_file reply.txt -json_file reply.json
+#python code/data_format.py -txt2json true -date_dir 20210318 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210217 -txt_file gif_reply.txt -json_file gif_reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file gif_reply.txt -json_file gif_reply.json
@@ -92,7 +95,7 @@
 #python code/data_format.py -final_format true
 #python code/data_format.py -from_EmotionGIF true
 #python code/data_format.py -for_lab1 true
-python code/data_format.py -merge true
+#python code/data_format.py -merge true
 #python code/data_format.py -split_context_GIF true
 
 #python code/data_format.py -remove_corrupted_mp4 true
@@ -111,6 +114,7 @@ python code/data_format.py -merge true
 #python code/label_gif.py -labeling_mp4s true -part 0
 #python code/label_gif.py -label_from_top100 true -part 0
 #python code/label_gif.py -write2gold true
+#python code/label_gif.py -arrange_mp4_files true
 
 ########################################
 ## Crawl top 100 GIF of each category ##

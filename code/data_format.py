@@ -312,11 +312,19 @@ def merge(args):
 	"""
 	def write_list(path_out, tgt_list):
 		fw = open(path_out, "w", encoding="utf-8")
+		cnt = 0
+		brk = False
 		for merge_data_list in tqdm(tgt_list):
 			for merge_data in merge_data_list:
+				## for data that doesn't have categories (in FakeNews)
+				if merge_data["mp4"] != "" and not merge_data["categories"]:
+					merge_data["categories"] = ["others"]
+					cnt += 1
 				fw.write(json.dumps(merge_data, ensure_ascii=False))
 				fw.write("\n")
+
 		fw.close()
+		print(cnt)
 
 	path_emotion = "{}/final/from_EmotionGIF".format(args.result_path)
 	path_fakenews = "{}/final/from_FakeNewsGIF".format(args.result_path)
@@ -387,8 +395,8 @@ def split_context_GIF(args):
 
 	print()
 	print("Writing merge training file")
-	gif_path = "{}/GIF/train_gold.json".format(path_merge)
-	context_path = "{}/context/train_gold.json".format(path_merge)
+	gif_path = "{}/gold/train_GIF_gold.json".format(path_merge)
+	context_path = "{}/gold/train_context_gold.json".format(path_merge)
 
 	fw_gif = open(gif_path, "w", encoding="utf-8")
 	fw_context = open(context_path, "w", encoding="utf-8")
@@ -405,7 +413,7 @@ def split_context_GIF(args):
 
 def for_lab1(args):
 	"""
-	Data for NLP Lab1.
+	Data for NLP Lab1. Only index and text needed.
 	"""
 	dirs = ["context", "GIF"]
 	for dir in dirs:

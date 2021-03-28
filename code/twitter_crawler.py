@@ -52,6 +52,7 @@ def parse_args():
 	parser.add_argument("-write_source_text", type=str2bool, default=False)
 	
 	# other arguments
+	parser.add_argument("-part", type=int, default=0)
 	parser.add_argument("-min_replies", type=int, default=5)
 	parser.add_argument("-query", type=str, default="(#FakeNews)")
 	parser.add_argument("-source_file", type=str, default="source.txt")
@@ -60,7 +61,7 @@ def parse_args():
 	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.txt") # for finding gif
 	parser.add_argument("-gif_dir", type=str, default="gif_reply") # for finding gif
 	parser.add_argument("-date_dir", type=str, default="20210318")
-	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
+	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
 	
 	args=parser.parse_args()
@@ -82,34 +83,6 @@ def setup_tweepy_api(args):
 
 	api = tweepy.API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 	return api
-
-def read_source_file(filename):
-	f = open(filename, "r")
-	lines = f.readlines()
-	f.close()
-
-	tweet_ids, usernames = [], []
-	for line in tqdm(lines):
-		line = line.strip().rstrip()
-		tweet_id, username = line.split("\t")[0], line.split("\t")[1]
-		tweet_ids.append(tweet_id)
-		usernames.append(username)
-
-	return tweet_ids, usernames
-
-def read_reply_file(filename):
-	f = open(filename, "r")
-	lines = f.readlines()
-	f.close()
-
-	types, tweet_ids = [], []
-	for line in lines:
-		line = line.strip().rstrip()
-		type, tweet_id = line.split("\t")[0], line.split("\t")[1]
-		types.append(type)
-		tweet_ids.append(tweet_id)
-
-	return types, tweet_ids
 
 def fetch_source(args):
 	def read_existing():
@@ -280,43 +253,83 @@ def find_gif_tweets(args):
 	'''
 	api = setup_tweepy_api(args)
 
-	input_path  = "{}/reply/20210301/{}".format(args.result_path, args.reply_file)
-	output_path = "{}/reply/20210301/{}".format(args.result_path, args.gif_reply_file)
+	input_path  = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.reply_file)
+	#output_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.gif_reply_file)
+	output_path = "{}/reply/{}/gif_reply_{}.json".format(args.result_path, args.date_dir, args.part)
 
 	print("Finding GIF tweets from {}".format(input_path))
 
-	# read source and reply ids
-	f = open(input_path, "r")
-	lines = f.readlines()
-	f.close()
+	## Get source dict
+	source_dict = {}
+	source_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.source_file)
+	for idx, line in enumerate(tqdm(open(source_path, encoding="utf-8").readlines())):
+		source_id, username, text = line.split("\t")[0], line.split("\t")[1], line.split("\t")[2]
+		source_dict[source_id] = text.replace("<newline>", "\n")
+	
+	## Get all replies
+	tree_list = json.load(open(input_path))
+
+	## Split 10 portion
+	start_idx = int(args.part * (len(tree_list) / 10))
+	end_idx = int((args.part + 1) * (len(tree_list) / 10))
 
 	fw = open(output_path, "w")
-	for line in tqdm(lines):
-		line = line.strip().rstrip()
-		type, id = line.split("\t")[0], line.split("\t")[1]
-
-		if type == "source":
-			source_id = id
+	for tree in tqdm(tree_list[start_idx:end_idx]):
+		if len(list(tree.items())) == 0:
 			continue
+		source_id, reply_list = list(tree.items())[0]
+		reply_list.sort()
 
-		try:
-			reply_status = api.get_status(id, tweet_mode="extended")
-			reply_type = reply_status.extended_entities["media"][0]["type"]
-			if reply_type == "animated_gif":
-				source_path = "{}/reply/20210301/{}/{}/reply".format(args.result_path, args.gif_dir, source_id)
-				# write to file
-				if not os.path.exists(source_path):
-					fw.write("source\t{}\n".format(source_id))
-				os.makedirs(source_path, exist_ok=True)
-				fw.write("reply\t{}\n".format(id))
-				# write json file
-				f_json = open("{}/{}.json".format(source_path, id), "w")
-				f_json.write(json.dumps(reply_status._json, indent=4))
-				f_json.close()
-		except (AttributeError, tweepy.error.TweepError) as e:
-			continue
-		except KeyboardInterrupt as e:
-			break
+		has_gif = False
+		write_list = []
+
+		for context_idx, reply_id in enumerate(reply_list):
+			## --gold format-- ##
+			## idx ##############
+			## text #############
+			## categories #######
+			## context_idx ######
+			## reply ############
+			## mp4 ##############
+			## label ############
+			## --additional-- ###
+			## reply_id #########
+			## gif_url ##########
+
+			try: ## if the tweet is accessible
+				data_obj = {}
+				reply_status = api.get_status(reply_id, tweet_mode="extended")
+				data_obj["idx"] = source_id
+				data_obj["text"] = source_dict[source_id]
+				data_obj["categories"] = []
+				data_obj["context_idx"] = context_idx
+				data_obj["reply"] = reply_status.full_text
+				data_obj["mp4"] = ""
+				data_obj["label"] = "fake"
+	
+				data_obj["reply_id"] = reply_id
+			except (AttributeError, tweepy.error.TweepError) as e:
+				continue
+
+			try: ## if the tweet contains gif
+				reply_type = reply_status.extended_entities["media"][0]["type"]
+				if reply_type == "animated_gif":
+					has_gif = True
+					gif_url = reply_status.extended_entities["media"][0]["video_info"]["variants"][0]["url"]
+				else:
+					gif_url = ""
+			except (AttributeError, tweepy.error.TweepError) as e:
+				gif_url = ""
+
+			data_obj["gif_url"] = gif_url
+			write_list.append(data_obj)
+
+		## if has_gif then write
+		if has_gif:
+			for context_idx, data_obj in enumerate(write_list):
+				data_obj["context_idx"] = context_idx
+				fw.write(json.dumps(data_obj, ensure_ascii=False))
+				fw.write("\n")
 	fw.close()
 
 def fetch_gif(args):

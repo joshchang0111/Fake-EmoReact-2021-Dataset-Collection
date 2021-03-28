@@ -1,3 +1,4 @@
+import os
 import json
 import argparse
 from tqdm import tqdm
@@ -17,6 +18,7 @@ def parse_args():
 	parser.add_argument("-count_by_txt", type=str2bool, default=False)
 	parser.add_argument("-count_miss_gif", type=str2bool, default=False)
 	parser.add_argument("-insert_missing", type=str2bool, default=False)
+	parser.add_argument("-read_final_and_test", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
@@ -214,6 +216,42 @@ def insert_missing(args):
 		json.dump(data, fw)
 		fw.write("\n")
 	fw.close()
+
+def read_final_and_test(args):
+	def read_gold(input_path):
+		gold_list = []
+		for line in tqdm(open(input_path, encoding="utf-8").readlines()):
+			line = line.strip().rstrip()
+			json_obj = json.loads(line)
+			gold_list.append(json_obj)
+		return gold_list
+
+	## three target file paths
+	gif_gold_path = "{}/final/merge/gold/train_GIF_gold.json".format(args.result_path)
+	context_gold_path = "{}/final/merge/gold/train_context_gold.json".format(args.result_path)
+	train_mp4s_path = "{}/final/merge/mp4s/train_mp4s".format(args.result_path)
+
+	gif_gold_list = read_gold(gif_gold_path)
+	context_gold_list = read_gold(context_gold_path)
+
+	mp4_files = []
+	train_mp4s = os.listdir(train_mp4s_path)
+	for train_mp4 in tqdm(train_mp4s):
+		if train_mp4[0] == "." and ".mp4" not in train_mp4:
+			continue
+		mp4_files.append(train_mp4)
+	#print(len(mp4_files))
+
+	## statistics
+	print("Statistics on gif_gold")
+	total_real, total_fake = [], []
+	for gif_gold in tqdm(gif_gold_list):
+		if gif_gold["label"] == "real":
+			total_real.append(gif_gold)
+		elif gif_gold["label"] == "fake":
+			total_fake.append(gif_gold)
+	print("real: {}".format(len(total_real)))
+	print("fake: {}".format(len(total_fake)))
 	
 def main(args):
 	if args.total_count:
@@ -226,6 +264,8 @@ def main(args):
 		count_miss_gif(args)
 	elif args.insert_missing:
 		insert_missing(args)
+	elif args.read_final_and_test:
+		read_final_and_test(args)
 
 if __name__ == "__main__":
 	args = parse_args()
