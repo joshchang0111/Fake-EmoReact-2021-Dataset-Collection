@@ -1,5 +1,6 @@
 .*
 code/.*
+config.ini
 script1.sh
 script2.sh
 script3.sh
