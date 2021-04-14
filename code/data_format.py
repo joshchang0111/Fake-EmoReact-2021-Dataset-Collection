@@ -35,12 +35,13 @@ def parse_args():
 	parser.add_argument("-for_lab1", type=str2bool, default=False)
 	parser.add_argument("-split_context_GIF", type=str2bool, default=False)
 	parser.add_argument("-remove_corrupted_mp4", type=str2bool, default=False)
+	parser.add_argument("-merge10txt", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-txt_file", type=str, default="reply.txt")
 	parser.add_argument("-json_file", type=str, default="reply.json")
 	parser.add_argument("-json_file_index", type=str, default="0")
-	parser.add_argument("-date_dir", type=str, default="20210301")
+	parser.add_argument("-date_dir", type=str, default="20210330")
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF")
 
 	args=parser.parse_args()
@@ -67,8 +68,8 @@ def txt2json(args):
 	'''
 	From "reply.txt" to "reply.json", etc.
 	'''
-	input_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.txt_file)
-	output_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.json_file)
+	input_path = "{}/with_FakeNews/{}/{}".format(args.result_path, args.date_dir, args.txt_file)
+	output_path = "{}/with_FakeNews/{}/{}".format(args.result_path, args.date_dir, args.json_file)
 
 	dict_list = []
 	source_id = None
@@ -498,6 +499,32 @@ def remove_corrupted_mp4(args):
 	for not_ok_mp4 in tqdm(not_ok_mp4s):
 		os.remove("{}/final/merge/mp4s/FakeNewsGIF/{}".format(args.result_path, not_ok_mp4))
 
+def merge10txt(args):
+	"""
+	This function merge txt files or (json files with one line one json object)
+	"""
+	output_path = "{}/wo_FakeNews/{}/gif_reply.json".format(args.result_path, args.date_dir)
+
+	all_json_objs, source_ids, gif_urls = [], [], []
+	for idx in tqdm(range(10)):
+		input_path = "{}/wo_FakeNews/{}/gif_reply_{}.json".format(args.result_path, args.date_dir, idx)
+		for line in open(input_path, encoding="utf-8"):
+			line = line.strip().rstrip()
+			json_obj = json.loads(line)
+			all_json_objs.append(json_obj)
+			source_ids.append(json_obj["idx"])
+			if json_obj["gif_url"] != "":
+				gif_urls.append(json_obj["gif_url"])
+	#print(len(all_json_objs))
+	print(len(set(source_ids)))
+	print(len(gif_urls))
+
+	fw = open(output_path, "w", encoding="utf-8")
+	for json_obj in tqdm(all_json_objs):
+		fw.write(json.dumps(json_obj, ensure_ascii=False))
+		fw.write("\n")
+	fw.close()
+
 def main(args):
 	if args.txt2json:
 		txt2json(args)
@@ -519,6 +546,8 @@ def main(args):
 		split_context_GIF(args)
 	elif args.remove_corrupted_mp4:
 		remove_corrupted_mp4(args)
+	elif args.merge10txt:
+		merge10txt(args)
 
 if __name__ == "__main__":
 	args = parse_args()

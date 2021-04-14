@@ -57,10 +57,10 @@ def parse_args():
 	parser.add_argument("-query", type=str, default="(#FakeNews)")
 	parser.add_argument("-source_file", type=str, default="source.txt")
 	parser.add_argument("-gif_source_file", type=str, default="gif_source.txt")
-	parser.add_argument("-reply_file", type=str, default="reply.txt")
-	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.txt") # for finding gif
-	parser.add_argument("-gif_dir", type=str, default="gif_reply") # for finding gif
-	parser.add_argument("-date_dir", type=str, default="20210318")
+	parser.add_argument("-reply_file", type=str, default="reply.json")
+	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.json") # for finding gif
+	parser.add_argument("-date_dir", type=str, default="20210413")
+	parser.add_argument("-data_type", type=str, default="with_FakeNews")
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
 	
@@ -88,40 +88,49 @@ def fetch_source(args):
 	def read_existing():
 		print("Reading existing ids")
 		exist_ids = []
-		date_dirs = ["20210217", "20210218", "20210301"]
+		date_dirs = ["20210217", "20210218", "20210301", "20210318"]
 		for date_dir in date_dirs:
-			path_in = "{}/reply/{}/gif_source.txt".format(args.result_path, date_dir)
+			path_in = "{}/{}/{}/source.txt".format(args.result_path, args.data_type, date_dir)
 			for line in tqdm(open(path_in).readlines()):
 				line = line.strip().rstrip()
 				source_id = line.split("\t")[0]
 				exist_ids.append(source_id)
+		exist_ids = set(exist_ids)
 		return exist_ids
 
 	## Reading existing ids
 	exist_ids = read_existing()
+	#exist_ids = []
 
 	## Fetching
 	print("Fetching source tweets")
 	print("query = {}".format(args.query))
 
-	filename = "{}/reply/{}/source.txt".format(args.result_path, args.date_dir)
+	filename = "{}/{}/{}/source.txt".format(args.result_path, args.data_type, args.date_dir)
 	tweet_list = []
 	f = open(filename, "w")
 
+	#over_flag = False
 	iter = 0
 	while True:
 		try:
 			for i, tweet in enumerate(sntwitter.TwitterSearchScraper(args.query).get_items()):
-				#pdb.set_trace()
 				if tweet.id not in tweet_list and str(tweet.id) not in exist_ids:
 					tweet_list.append(tweet.id)
 					f.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>").replace("\n", "<newline>")))
 					#if "#fakenews" not in tweet.content.lower():
 					#	tweet_list.append(tweet.id)
 					#	f.write("{}\t{}\t{}\n".format(tweet.id, tweet.username, tweet.content.replace("\n", "<newline>").replace("\n", "<newline>")))
+				
+				#if len(tweet_list) >= 25000:
+				#	over_flag = True
+				#	break
 
 			print("Iteration {}: {}".format(iter, len(tweet_list)))
 			iter += 1
+
+			#if over_flag:
+			#	break
 
 		except KeyboardInterrupt:
 			print("KeyboardInterrupt, stop fetching source.")
@@ -253,15 +262,15 @@ def find_gif_tweets(args):
 	'''
 	api = setup_tweepy_api(args)
 
-	input_path  = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.reply_file)
-	#output_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.gif_reply_file)
-	output_path = "{}/reply/{}/gif_reply_{}.json".format(args.result_path, args.date_dir, args.part)
+	input_path  = "{}/with_FakeNews/{}/{}".format(args.result_path, args.date_dir, args.reply_file)
+	#output_path = "{}/wo_FakeNews/{}/{}".format(args.result_path, args.date_dir, args.gif_reply_file)
+	output_path = "{}/with_FakeNews/{}/gif_reply_{}.json".format(args.result_path, args.date_dir, args.part)
 
 	print("Finding GIF tweets from {}".format(input_path))
 
 	## Get source dict
 	source_dict = {}
-	source_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.source_file)
+	source_path = "{}/with_FakeNews/{}/{}".format(args.result_path, args.date_dir, args.source_file)
 	for idx, line in enumerate(tqdm(open(source_path, encoding="utf-8").readlines())):
 		source_id, username, text = line.split("\t")[0], line.split("\t")[1], line.split("\t")[2]
 		source_dict[source_id] = text.replace("<newline>", "\n")
@@ -270,11 +279,12 @@ def find_gif_tweets(args):
 	tree_list = json.load(open(input_path))
 
 	## Split 10 portion
-	start_idx = int(args.part * (len(tree_list) / 10))
-	end_idx = int((args.part + 1) * (len(tree_list) / 10))
+	#start_idx = int(args.part * (len(tree_list) / 10))
+	#end_idx = int((args.part + 1) * (len(tree_list) / 10))
 
 	fw = open(output_path, "w")
-	for tree in tqdm(tree_list[start_idx:end_idx]):
+	#for tree in tqdm(tree_list[start_idx:end_idx]):
+	for tree in tqdm(tree_list):
 		if len(list(tree.items())) == 0:
 			continue
 		source_id, reply_list = list(tree.items())[0]
@@ -336,40 +346,27 @@ def fetch_gif(args):
 	'''
 	Retrieve gif files (.mp4) from urls.
 	'''
-	gif_path = "{}/reply/{}/{}".format(args.result_path, args.date_dir, args.gif_dir)
+	## Get all gif urls from "gif_reply.json"
+	gif_urls = []
+	gif_path = "{}/with_FakeNews/{}/gif_reply.json".format(args.result_path, args.date_dir)
+	for line in tqdm(open(gif_path, encoding="utf-8").readlines()):
+		line = line.strip().rstrip()
+		json_obj = json.loads(line)
+		if json_obj["gif_url"] != "":
+			gif_urls.append(json_obj["gif_url"])
 
-	source_ids = os.listdir(gif_path)
-	for source_id in source_ids:
-		if not os.path.isdir("{}/{}".format(gif_path, source_id)):
-			source_ids.remove(source_id)
+	print(len(set(gif_urls)))
 
-	for source_id in tqdm(source_ids):
-		reply_path = "{}/{}/reply".format(gif_path, source_id)
-		files = os.listdir(reply_path)
+	## Split 10 portion
+	start_idx = int(args.part * (len(gif_urls) / 10))
+	end_idx = int((args.part + 1) * (len(gif_urls) / 10))
 
-		json_files, mp4_files = [], []
-		for file in files:
-			# remove files not named "source_id.json" or "source_id.mp4"
-			if len(file.split(".")) != 2 or file[0] == "." or file[0] == "_":
-				continue
-			# check number of .mp4 and .json
-			if ".mp4" in file:
-				mp4_files.append(file)
-			elif ".json" in file:
-				json_files.append(file)
-
-		if len(mp4_files) == len(json_files):
-			continue
-
-		for json_file in json_files:
-			# read json
-			json_path = "{}/{}".format(reply_path, json_file)
-			f_json = open(json_path, "r")
-			tweet_json = json.load(f_json)
-			# fetch gif
-			gif_url = tweet_json["extended_entities"]["media"][0]["video_info"]["variants"][0]["url"]
-			r = requests.get(gif_url, allow_redirects=True)
-			open("{}/{}.mp4".format(reply_path, json_file.split(".")[0]), "wb").write(r.content)
+	## Start fetching gif
+	output_path = "{}/with_FakeNews/{}/mp4s".format(args.result_path, args.date_dir)
+	#for gif_url in tqdm(gif_urls[start_idx:end_idx]):
+	for gif_url in tqdm(gif_urls):
+		r = requests.get(gif_url, allow_redirects=True)
+		open("{}/{}".format(output_path, gif_url.split("/")[-1]), "wb").write(r.content)
 
 def get_gif_source(args):
 	source_path = "{}/reply/{}/gif_reply".format(args.result_path, args.date_dir)

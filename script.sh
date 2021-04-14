@@ -1,15 +1,15 @@
 ##################
 ## Fetch Source ##
 ##################
-#python code/twitter_crawler.py -fetch_source true -query "(#FakeNews) min_replies:5 lang:en"
-#python code/twitter_crawler.py -fetch_source true -query "covid (#FakeNews) min_replies:5 lang:en"
-#python code/twitter_crawler.py -fetch_source true -date_dir 20210310 -query "min_replies:5 lang:en"
+#python code/main_crawler.py -fetch_source true -data_type with_FakeNews -date_dir 20210413 -query "(#FakeNews) min_replies:5 lang:en"
+#python code/main_crawler.py -fetch_source true -query "covid (#FakeNews) min_replies:5 lang:en"
+#python code/main_crawler.py -fetch_source true -data_type wo_FakeNews -date_dir 20210330 -query "min_replies:5 lang:en"
 
 ###################
 ## Fetch Replies ##
 ###################
-#python code/twitter_crawler.py -install_chrome_driver true
-#python3 code/twitter_crawler.py \
+#python code/main_crawler.py -install_chrome_driver true
+#python3 code/main_crawler.py \
 #	-fetch_replies true \
 #	-source_file source.txt \
 #	-reply_file reply.txt
@@ -17,38 +17,37 @@
 ##############
 ## Find GIF ##
 ##############
-python code/twitter_crawler.py \
-	-app_name AgainstRumor \
-	-find_gif true \
-	-reply_file reply.json \
-	-part 0
-	#-gif_reply_file gif_reply.json \
-#	-gif_dir gif_reply
+#python code/main_crawler.py \
+#	-app_name AgainstRumor \
+#	-date_dir 20210413 \
+#	-find_gif true \
+#	-reply_file reply.json \
+#	-part 0
 #
 #
-#python code/twitter_crawler.py \
+#python code/main_crawler.py \
 #	-app_name AgainstRumor \
 #	-find_gif true \
 #	-reply_file no_covid_4_reply.txt \
 #	-gif_reply_file no_covid_4_gif_reply.txt \
 #	-gif_dir no_covid_4_gif_tweets
-#python code/twitter_crawler.py -rewrite_gif_tweets true
+#python code/main_crawler.py -rewrite_gif_tweets true
 
 ###############
 ## Fetch GIF ##
 ###############
-#python code/twitter_crawler.py -fetch_gif true -date_dir 20210218
-#python code/twitter_crawler.py -fetch_gif true -date_dir 20210301
+#python code/main_crawler.py -fetch_gif true -date_dir 20210413 -part 0
+#python code/main_crawler.py -fetch_gif true -date_dir 20210301
 
 ####################
 ## Get GIF Source ##
 ####################
-#python code/twitter_crawler.py -get_gif_source true
+#python code/main_crawler.py -get_gif_source true
 
 #######################
 ## Write Source Text ##
 #######################
-#python code/twitter_crawler.py -write_source_text true
+#python code/main_crawler.py -write_source_text true
 
 ################
 ## Statistics ##
@@ -74,7 +73,7 @@ python code/twitter_crawler.py \
 #################
 ## Data Format ##
 #################
-#python code/data_format.py -txt2json true -date_dir 20210318 -txt_file reply.txt -json_file reply.json
+#python code/data_format.py -txt2json true -date_dir 20210413 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210217 -txt_file gif_reply.txt -json_file gif_reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file gif_reply.txt -json_file gif_reply.json
@@ -99,19 +98,20 @@ python code/twitter_crawler.py \
 #python code/data_format.py -split_context_GIF true
 
 #python code/data_format.py -remove_corrupted_mp4 true
+#python code/data_format.py -merge10txt true
 
 ###########################
 ## Label mp4s categories ##
 ###########################
 #python code/label_gif.py -merge_mp4s true
-#python code/label_gif.py -mp4_frames true
+python code/label_gif.py -mp4_frames true
 #python code/label_gif.py -gif_frames true
 #python code/label_gif.py -find_similar_img true -part 0
 #python code/label_gif.py -construct_categories_table true
 #python code/label_gif.py -merge_EmotionGIF_mp4s true
 #python code/label_gif.py -merge_10_json true
 #python code/label_gif.py -analyze_FakeNewsGIF_labels true
-#python code/label_gif.py -labeling_mp4s true -part 0
+#python code/label_gif.py -label_from_EmotionGIF true -part 0
 #python code/label_gif.py -label_from_top100 true -part 0
 #python code/label_gif.py -write2gold true
 #python code/label_gif.py -arrange_mp4_files true

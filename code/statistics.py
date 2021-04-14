@@ -19,6 +19,7 @@ def parse_args():
 	parser.add_argument("-count_miss_gif", type=str2bool, default=False)
 	parser.add_argument("-insert_missing", type=str2bool, default=False)
 	parser.add_argument("-read_final_and_test", type=str2bool, default=False)
+	parser.add_argument("-cnt_existing", type=str2bool, default=False)
 
 	# other arguments
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF/")
@@ -252,6 +253,30 @@ def read_final_and_test(args):
 			total_fake.append(gif_gold)
 	print("real: {}".format(len(total_real)))
 	print("fake: {}".format(len(total_fake)))
+
+def cnt_existing(args):
+	## Read all existing source ids
+	exist_ids = []
+	date_dirs = ["20210217", "20210218", "20210301"]
+	for date_dir in date_dirs:
+		for line in tqdm(open("{}/with_FakeNews/{}/gif_source.txt".format(args.result_path, date_dir), encoding="utf-8").readlines()):
+			line = line.strip().rstrip()
+			source_id = line.split("\t")[0]
+			exist_ids.append(source_id)
+	print(len(set(exist_ids)))
+	print(type(exist_ids[0]))
+
+	## Read from 20210318
+	duplicate = []
+	path_mp4s = "{}/with_FakeNews/20210318/gif_reply.json".format(args.result_path)
+	for line in tqdm(open(path_mp4s, encoding="utf-8").readlines()):
+		line = line.strip().rstrip()
+		json_obj = json.loads(line)
+		if json_obj["idx"] in exist_ids:
+			duplicate.append(json_obj["idx"])
+	print(type(json_obj["idx"]))
+
+	print("Duplicate in 20210318: {}".format(len(duplicate)))
 	
 def main(args):
 	if args.total_count:
@@ -266,6 +291,8 @@ def main(args):
 		insert_missing(args)
 	elif args.read_final_and_test:
 		read_final_and_test(args)
+	elif args.cnt_existing:
+		cnt_existing(args)
 
 if __name__ == "__main__":
 	args = parse_args()
