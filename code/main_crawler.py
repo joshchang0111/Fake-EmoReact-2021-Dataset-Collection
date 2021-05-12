@@ -59,7 +59,7 @@ def parse_args():
 	parser.add_argument("-gif_source_file", type=str, default="gif_source.txt")
 	parser.add_argument("-reply_file", type=str, default="reply.json")
 	parser.add_argument("-gif_reply_file", type=str, default="gif_reply.json") # for finding gif
-	parser.add_argument("-date_dir", type=str, default="20210413")
+	parser.add_argument("-date_dir", type=str, default="20210415")
 	parser.add_argument("-data_type", type=str, default="with_FakeNews")
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF")
 	parser.add_argument("-user_agent", type=str, default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36")
@@ -88,14 +88,23 @@ def fetch_source(args):
 	def read_existing():
 		print("Reading existing ids")
 		exist_ids = []
-		date_dirs = ["20210217", "20210218", "20210301", "20210318"]
+		date_dirs = ["20210217", "20210218", "20210301"]
 		for date_dir in date_dirs:
-			path_in = "{}/{}/{}/source.txt".format(args.result_path, args.data_type, date_dir)
+			path_in = "{}/{}/{}/gif_source.txt".format(args.result_path, args.data_type, date_dir)
 			for line in tqdm(open(path_in).readlines()):
 				line = line.strip().rstrip()
 				source_id = line.split("\t")[0]
 				exist_ids.append(source_id)
+
+		date_dirs = ["20210318", "20210413"]
+		for date_dir in date_dirs:
+			path_in = "{}/{}/{}/gif_reply.json".format(args.result_path, args.data_type, date_dir)
+			for line in tqdm(open(path_in).readlines()):
+				line = line.strip().rstrip()
+				json_obj = json.loads(line)
+				exist_ids.append(json_obj["idx"])
 		exist_ids = set(exist_ids)
+
 		return exist_ids
 
 	## Reading existing ids
@@ -256,6 +265,31 @@ def fetch_replies(args):
 			fw.write("reply\t{}\n".format(reply_id))
 	fw.close()
 
+def fetch_gif(args, gif_url):
+	'''
+	Retrieve gif file (.mp4) from url.
+	'''
+	'''
+	## Get all gif urls from "gif_reply.json"
+	gif_urls = []
+	gif_path = "{}/with_FakeNews/{}/gif_reply.json".format(args.result_path, args.date_dir)
+	for line in tqdm(open(gif_path, encoding="utf-8").readlines()):
+		line = line.strip().rstrip()
+		json_obj = json.loads(line)
+		if json_obj["gif_url"] != "":
+			gif_urls.append(json_obj["gif_url"])
+
+	print(len(set(gif_urls)))
+
+	## Split 10 portion
+	start_idx = int(args.part * (len(gif_urls) / 10))
+	end_idx = int((args.part + 1) * (len(gif_urls) / 10))
+	'''
+
+	output_path = "{}/with_FakeNews/{}/mp4s".format(args.result_path, args.date_dir)
+	r = requests.get(gif_url, allow_redirects=True)
+	open("{}/{}".format(output_path, gif_url.split("/")[-1]), "wb").write(r.content)
+
 def find_gif_tweets(args):
 	'''
 	Find gif tweets among all replies.
@@ -279,12 +313,12 @@ def find_gif_tweets(args):
 	tree_list = json.load(open(input_path))
 
 	## Split 10 portion
-	#start_idx = int(args.part * (len(tree_list) / 10))
-	#end_idx = int((args.part + 1) * (len(tree_list) / 10))
+	start_idx = int(args.part * (len(tree_list) / 10))
+	end_idx = int((args.part + 1) * (len(tree_list) / 10))
 
 	fw = open(output_path, "w")
-	#for tree in tqdm(tree_list[start_idx:end_idx]):
-	for tree in tqdm(tree_list):
+	for tree in tqdm(tree_list[start_idx:end_idx]):
+	#for tree in tqdm(tree_list):
 		if len(list(tree.items())) == 0:
 			continue
 		source_id, reply_list = list(tree.items())[0]
@@ -326,6 +360,7 @@ def find_gif_tweets(args):
 				if reply_type == "animated_gif":
 					has_gif = True
 					gif_url = reply_status.extended_entities["media"][0]["video_info"]["variants"][0]["url"]
+					fetch_gif(args, gif_url)
 				else:
 					gif_url = ""
 			except (AttributeError, tweepy.error.TweepError) as e:
@@ -341,32 +376,6 @@ def find_gif_tweets(args):
 				fw.write(json.dumps(data_obj, ensure_ascii=False))
 				fw.write("\n")
 	fw.close()
-
-def fetch_gif(args):
-	'''
-	Retrieve gif files (.mp4) from urls.
-	'''
-	## Get all gif urls from "gif_reply.json"
-	gif_urls = []
-	gif_path = "{}/with_FakeNews/{}/gif_reply.json".format(args.result_path, args.date_dir)
-	for line in tqdm(open(gif_path, encoding="utf-8").readlines()):
-		line = line.strip().rstrip()
-		json_obj = json.loads(line)
-		if json_obj["gif_url"] != "":
-			gif_urls.append(json_obj["gif_url"])
-
-	print(len(set(gif_urls)))
-
-	## Split 10 portion
-	start_idx = int(args.part * (len(gif_urls) / 10))
-	end_idx = int((args.part + 1) * (len(gif_urls) / 10))
-
-	## Start fetching gif
-	output_path = "{}/with_FakeNews/{}/mp4s".format(args.result_path, args.date_dir)
-	#for gif_url in tqdm(gif_urls[start_idx:end_idx]):
-	for gif_url in tqdm(gif_urls):
-		r = requests.get(gif_url, allow_redirects=True)
-		open("{}/{}".format(output_path, gif_url.split("/")[-1]), "wb").write(r.content)
 
 def get_gif_source(args):
 	source_path = "{}/reply/{}/gif_reply".format(args.result_path, args.date_dir)

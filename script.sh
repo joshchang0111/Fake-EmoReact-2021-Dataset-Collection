@@ -1,7 +1,7 @@
 ##################
 ## Fetch Source ##
 ##################
-#python code/main_crawler.py -fetch_source true -data_type with_FakeNews -date_dir 20210413 -query "(#FakeNews) min_replies:5 lang:en"
+#python code/main_crawler.py -fetch_source true -data_type with_FakeNews -date_dir 20210415 -query "(#FakeNews) min_replies:5 lang:en"
 #python code/main_crawler.py -fetch_source true -query "covid (#FakeNews) min_replies:5 lang:en"
 #python code/main_crawler.py -fetch_source true -data_type wo_FakeNews -date_dir 20210330 -query "min_replies:5 lang:en"
 
@@ -19,7 +19,7 @@
 ##############
 #python code/main_crawler.py \
 #	-app_name AgainstRumor \
-#	-date_dir 20210413 \
+#	-date_dir 20210415 \
 #	-find_gif true \
 #	-reply_file reply.json \
 #	-part 0
@@ -69,11 +69,16 @@
 #python code/statistics.py -insert_missing true -date_dir 20210301
 
 #python code/statistics.py -read_final_and_test true
+#python code/statistics.py -detect_source true
+#python code/statistics.py -check true
+#python code/statistics.py -package2 true
+#python code/statistics.py -count_package2 true
+python code/statistics.py -phase1_from_package2 true
 
 #################
 ## Data Format ##
 #################
-#python code/data_format.py -txt2json true -date_dir 20210413 -txt_file reply.txt -json_file reply.json
+#python code/data_format.py -txt2json true -date_dir 20210415 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210217 -txt_file gif_reply.txt -json_file gif_reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file gif_reply.txt -json_file gif_reply.json
@@ -104,7 +109,7 @@
 ## Label mp4s categories ##
 ###########################
 #python code/label_gif.py -merge_mp4s true
-python code/label_gif.py -mp4_frames true
+#python code/label_gif.py -mp4_frames true
 #python code/label_gif.py -gif_frames true
 #python code/label_gif.py -find_similar_img true -part 0
 #python code/label_gif.py -construct_categories_table true

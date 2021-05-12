@@ -246,15 +246,15 @@ def merge_EmotionGIF_mp4s(args):
 		shutil.copyfile("{}/final/merge/mp4s/EmotionGIF_eval/{}".format(args.result_path, eval_mp4), "{}/{}".format(path_out, eval_mp4))
 
 def merge_10_json(args):
-	json_file_name = "mp4s_labels"
+	json_file_name = "unlabeled_mp4s_labels"
 	labels_dict = {}
 	for idx in range(10):
-		path_in = "{}/wo_FakeNews/{}/{}_{}.json".format(args.result_path, args.date_dir, json_file_name, idx)
+		path_in = "{}/with_FakeNews/{}/{}_{}.json".format(args.result_path, args.date_dir, json_file_name, idx)
 		json_obj = json.load(open(path_in))
 		labels_dict.update(json_obj)
 	print(len(list(labels_dict.items())))
 
-	path_out = "{}/wo_FakeNews/{}/{}.json".format(args.result_path, args.date_dir, json_file_name)
+	path_out = "{}/with_FakeNews/{}/{}.json".format(args.result_path, args.date_dir, json_file_name)
 	fw = open(path_out, "w")
 	json.dump(labels_dict, fw, indent=4)
 	fw.close()
@@ -290,7 +290,7 @@ def analyze_FakeNewsGIF_labels(args):
 	'''
 	
 	#path_in = "{}/final/merge/FakeNewsGIF_labels_new.json".format(args.result_path)
-	path_in = "{}/wo_FakeNews/{}/mp4s_labels.json".format(args.result_path, args.date_dir)
+	path_in = "{}/with_FakeNews/{}/mp4s_labels.json".format(args.result_path, args.date_dir)
 	
 	json_obj = json.load(open(path_in))
 	labeled_files, unlabeled_files = [], []
@@ -303,7 +303,7 @@ def analyze_FakeNewsGIF_labels(args):
 	print("Unlabeled files: {}".format(len(unlabeled_files)))
 	print("Labeled files: {}".format(len(labeled_files)))
 
-	fw = open("{}/wo_FakeNews/{}/unlabeled_mp4s.txt".format(args.result_path, args.date_dir), "w")
+	fw = open("{}/with_FakeNews/{}/unlabeled_mp4s.txt".format(args.result_path, args.date_dir), "w")
 	for unlabeled_file in tqdm(unlabeled_files):
 		fw.write("{}\n".format(unlabeled_file))
 	fw.close()
@@ -342,7 +342,7 @@ def label_from_EmotionGIF(args):
 				categories.append(label)
 		return categories
 
-	path_fakenews_frame = "{}/wo_FakeNews/{}/frames/".format(args.result_path, args.date_dir)
+	path_fakenews_frame = "{}/with_FakeNews/{}/frames/".format(args.result_path, args.date_dir)
 	path_emotion_frame = "{}/package1/merge/frames/EmotionGIF".format(args.result_path)
 
 	## Read from EmotionGIF categories
@@ -353,7 +353,7 @@ def label_from_EmotionGIF(args):
 
 	## Read unlabeled mp4s
 	unlabeled_mp4s = []
-	for line in tqdm(open("{}/wo_FakeNews/{}/unlabeled_mp4s.txt".format(args.result_path, args.date_dir)).readlines()):
+	for line in tqdm(open("{}/with_FakeNews/{}/unlabeled_mp4s.txt".format(args.result_path, args.date_dir)).readlines()):
 		line = line.strip().rstrip()
 		unlabeled_mp4s.append(line)
 
@@ -366,12 +366,13 @@ def label_from_EmotionGIF(args):
 	## Labeling
 	new_dict = {}
 	emotion_frames = os.listdir(path_emotion_frame)
-	for unlabeled_mp4 in tqdm(unlabeled_mp4s[start_idx:end_idx]):
+	#for unlabeled_mp4 in tqdm(unlabeled_mp4s[start_idx:end_idx]):
+	for unlabeled_mp4 in tqdm(unlabeled_mp4s):
 		target_path = "{}/{}.jpg".format(path_fakenews_frame, unlabeled_mp4.split(".")[0])
 		categories = labeling(mp4_dict, target_path, path_emotion_frame, emotion_frames)
 		new_dict[unlabeled_mp4] = categories
 
-	fw = open("{}/wo_FakeNews/{}/unlabeled_mp4s_labels_{}.json".format(args.result_path, args.date_dir, args.part), "w")
+	fw = open("{}/with_FakeNews/{}/unlabeled_mp4s_labels_{}.json".format(args.result_path, args.date_dir, args.part), "w")
 	json.dump(new_dict, fw, indent=4)
 	fw.close()
 
@@ -411,21 +412,28 @@ def label_from_top100(args):
 	#	line = line.strip().rstrip()
 	#	unlabeled_files.append(line)
 
-	path_frame = "{}/wo_FakeNews/{}/frames".format(args.result_path, args.date_dir)
+	path_frame = "{}/with_FakeNews/{}/frames".format(args.result_path, args.date_dir)
+	new_frame_files = []
 	frame_files = os.listdir(path_frame)
+	for frame in frame_files:
+		if frame[0] == "." or ".jpg" not in frame:
+			continue
+		new_frame_files.append(frame)
+	frame_files = new_frame_files
 
-	## Split 10 portion
-	start_idx = int(args.part * (len(frame_files) / 10))
-	end_idx = int((args.part + 1) * (len(frame_files) / 10))
+	### Split 10 portion
+	#start_idx = int(args.part * (len(frame_files) / 10))
+	#end_idx = int((args.part + 1) * (len(frame_files) / 10))
 
 	## Labeling
 	new_dict = {}
-	for frame in tqdm(frame_files[start_idx:end_idx]):
+	#for frame in tqdm(frame_files[start_idx:end_idx]):
+	for frame in tqdm(frame_files):
 		target_path = "{}/{}.jpg".format(path_frame, frame.split(".")[0])
 		categories = labeling(target_path)
 		new_dict[frame] = categories
 
-	fw = open("{}/wo_FakeNews/{}/mp4s_labels_{}.json".format(args.result_path, args.date_dir, args.part), "w")
+	fw = open("{}/with_FakeNews/{}/mp4s_labels_{}.json".format(args.result_path, args.date_dir, args.part), "w")
 	json.dump(new_dict, fw, indent=4)
 	fw.close()
 

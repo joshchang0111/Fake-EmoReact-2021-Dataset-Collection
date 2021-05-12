@@ -41,7 +41,7 @@ def parse_args():
 	parser.add_argument("-txt_file", type=str, default="reply.txt")
 	parser.add_argument("-json_file", type=str, default="reply.json")
 	parser.add_argument("-json_file_index", type=str, default="0")
-	parser.add_argument("-date_dir", type=str, default="20210330")
+	parser.add_argument("-date_dir", type=str, default="20210415")
 	parser.add_argument("-result_path", type=str, default="/mnt/hdd1/joshchang/datasets/FakeNewsGIF")
 
 	args=parser.parse_args()
@@ -503,11 +503,10 @@ def merge10txt(args):
 	"""
 	This function merge txt files or (json files with one line one json object)
 	"""
-	output_path = "{}/wo_FakeNews/{}/gif_reply.json".format(args.result_path, args.date_dir)
 
 	all_json_objs, source_ids, gif_urls = [], [], []
 	for idx in tqdm(range(10)):
-		input_path = "{}/wo_FakeNews/{}/gif_reply_{}.json".format(args.result_path, args.date_dir, idx)
+		input_path = "{}/with_FakeNews/{}/gif_reply_{}.json".format(args.result_path, args.date_dir, idx)
 		for line in open(input_path, encoding="utf-8"):
 			line = line.strip().rstrip()
 			json_obj = json.loads(line)
@@ -518,6 +517,8 @@ def merge10txt(args):
 	#print(len(all_json_objs))
 	print(len(set(source_ids)))
 	print(len(gif_urls))
+
+	output_path = "{}/with_FakeNews/{}/gif_reply.json".format(args.result_path, args.date_dir)
 
 	fw = open(output_path, "w", encoding="utf-8")
 	for json_obj in tqdm(all_json_objs):
