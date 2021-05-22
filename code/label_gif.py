@@ -246,7 +246,7 @@ def merge_EmotionGIF_mp4s(args):
 		shutil.copyfile("{}/final/merge/mp4s/EmotionGIF_eval/{}".format(args.result_path, eval_mp4), "{}/{}".format(path_out, eval_mp4))
 
 def merge_10_json(args):
-	json_file_name = "unlabeled_mp4s_labels"
+	json_file_name = "gif_reply"#"unlabeled_mp4s_labels"
 	labels_dict = {}
 	for idx in range(10):
 		path_in = "{}/with_FakeNews/{}/{}_{}.json".format(args.result_path, args.date_dir, json_file_name, idx)

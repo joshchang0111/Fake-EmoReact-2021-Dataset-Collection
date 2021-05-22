@@ -501,7 +501,7 @@ def remove_corrupted_mp4(args):
 
 def merge10txt(args):
 	"""
-	This function merge txt files or (json files with one line one json object)
+	This function merges txt files or (json files with one line one json object)
 	"""
 
 	all_json_objs, source_ids, gif_urls = [], [], []

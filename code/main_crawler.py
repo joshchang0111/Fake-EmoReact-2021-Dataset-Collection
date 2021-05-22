@@ -350,7 +350,7 @@ def find_gif_tweets(args):
 				data_obj["reply"] = reply_status.full_text
 				data_obj["mp4"] = ""
 				data_obj["label"] = "fake"
-	
+				
 				data_obj["reply_id"] = reply_id
 			except (AttributeError, tweepy.error.TweepError) as e:
 				continue

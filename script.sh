@@ -1,7 +1,7 @@
 ##################
 ## Fetch Source ##
 ##################
-#python code/main_crawler.py -fetch_source true -data_type with_FakeNews -date_dir 20210415 -query "(#FakeNews) min_replies:5 lang:en"
+#python3 code/main_crawler.py -fetch_source true -data_type with_FakeNews -date_dir 20210520 -query "(#FakeNews) min_replies:5 lang:en"
 #python code/main_crawler.py -fetch_source true -query "covid (#FakeNews) min_replies:5 lang:en"
 #python code/main_crawler.py -fetch_source true -data_type wo_FakeNews -date_dir 20210330 -query "min_replies:5 lang:en"
 
@@ -17,14 +17,13 @@
 ##############
 ## Find GIF ##
 ##############
-#python code/main_crawler.py \
+#python3 code/main_crawler.py \
 #	-app_name AgainstRumor \
-#	-date_dir 20210415 \
+#	-date_dir 20210520 \
 #	-find_gif true \
 #	-reply_file reply.json \
 #	-part 0
-#
-#
+
 #python code/main_crawler.py \
 #	-app_name AgainstRumor \
 #	-find_gif true \
@@ -70,15 +69,11 @@
 
 #python code/statistics.py -read_final_and_test true
 #python code/statistics.py -detect_source true
-#python code/statistics.py -check true
-#python code/statistics.py -package2 true
-#python code/statistics.py -count_package2 true
-python code/statistics.py -phase1_from_package2 true
 
 #################
 ## Data Format ##
 #################
-#python code/data_format.py -txt2json true -date_dir 20210415 -txt_file reply.txt -json_file reply.json
+#python3 code/data_format.py -txt2json true -date_dir 20210520 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210217 -txt_file gif_reply.txt -json_file gif_reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file reply.txt -json_file reply.json
 #python code/data_format.py -txt2json true -date_dir 20210218 -txt_file gif_reply.txt -json_file gif_reply.json
@@ -103,7 +98,7 @@ python code/statistics.py -phase1_from_package2 true
 #python code/data_format.py -split_context_GIF true
 
 #python code/data_format.py -remove_corrupted_mp4 true
-#python code/data_format.py -merge10txt true
+#python code/data_format.py -merge10txt true -date_dir 20210520
 
 ###########################
 ## Label mp4s categories ##
@@ -114,7 +109,7 @@ python code/statistics.py -phase1_from_package2 true
 #python code/label_gif.py -find_similar_img true -part 0
 #python code/label_gif.py -construct_categories_table true
 #python code/label_gif.py -merge_EmotionGIF_mp4s true
-#python code/label_gif.py -merge_10_json true
+#python code/label_gif.py -merge_10_json true -date_dir 20210520
 #python code/label_gif.py -analyze_FakeNewsGIF_labels true
 #python code/label_gif.py -label_from_EmotionGIF true -part 0
 #python code/label_gif.py -label_from_top100 true -part 0
@@ -125,3 +120,10 @@ python code/statistics.py -phase1_from_package2 true
 ## Crawl top 100 GIF of each category ##
 ########################################
 #python code/top100GIF.py -fetch_100GIF_file true -part 0
+
+##################
+## Process data ##
+##################
+#python code/process.py -package3 true
+#python code/process.py -phase2_test true
+python code/process.py -check true

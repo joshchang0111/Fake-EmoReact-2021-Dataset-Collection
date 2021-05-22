@@ -11,3 +11,6 @@ webdriver_manager
 bs4  
 tweepy  
 requests
+opencv-python
+pillow
+imagehash
